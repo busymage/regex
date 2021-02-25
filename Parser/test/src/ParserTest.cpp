@@ -137,13 +137,13 @@ TEST(ParserTest, CharacterGroup)
 {
     Parser parser("[a0-9\\d]");
     AST *ast = parser.parse();
-    ASSERT_EQ(ast->topNode->token.type, TokenType::CAT);
-    ASSERT_EQ(ast->topNode->token.value, "");
+    ASSERT_EQ(ast->topNode->token.type, TokenType::OR);
+    ASSERT_EQ(ast->topNode->token.value, "|");
 
     Node *cat = ast->topNode->leftChild;
     Node *slashD = ast->topNode->rightChild;
-    ASSERT_EQ(cat->token.type, TokenType::CAT);
-    ASSERT_EQ(cat->token.value, "");
+    ASSERT_EQ(cat->token.type, TokenType::OR);
+    ASSERT_EQ(cat->token.value, "|");
     ASSERT_EQ(slashD->token.type, TokenType::ANY_SINGLE_DIGIT);
     ASSERT_EQ(slashD->token.value, "\\d");
 
@@ -216,13 +216,13 @@ TEST(ParserTest, match)
     ASSERT_EQ(ast->topNode->token.value, "*");
 
     Node *matchItem = ast->topNode->leftChild;
-    ASSERT_EQ(matchItem->token.type, TokenType::CAT);
-    ASSERT_EQ(matchItem->token.value, "");
+    ASSERT_EQ(matchItem->token.type, TokenType::OR);
+    ASSERT_EQ(matchItem->token.value, "|");
 
     Node *cat = matchItem->leftChild;
     Node *slashD = matchItem->rightChild;
-    ASSERT_EQ(cat->token.type, TokenType::CAT);
-    ASSERT_EQ(cat->token.value, "");
+    ASSERT_EQ(cat->token.type, TokenType::OR);
+    ASSERT_EQ(cat->token.value, "|");
     ASSERT_EQ(slashD->token.type, TokenType::ANY_SINGLE_DIGIT);
     ASSERT_EQ(slashD->token.value, "\\d");
 

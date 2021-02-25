@@ -133,4 +133,14 @@ TEST(EngineTest, accpetAnyNotWord)
     ASSERT_FALSE(e.accept("ABC "));
 }
 
-
+TEST(EngineTest, accpetCharGroup)
+{
+    Engine e("[\\da-z]+");
+    ASSERT_TRUE(e.accept("az9"));
+    ASSERT_TRUE(e.accept("9ad"));
+    ASSERT_TRUE(e.accept("azs"));
+    ASSERT_TRUE(e.accept("999"));
+    ASSERT_FALSE(e.accept("Ab_1"));	
+    ASSERT_FALSE(e.accept("(\\D)+"));
+    ASSERT_FALSE(e.accept("a-z+"));
+}

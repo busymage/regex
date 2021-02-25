@@ -133,7 +133,7 @@ struct Parser::Impl{
                 group = groupItem;
             }else{
                 Node *cat = new Node;
-                cat->token = {TokenType::CAT, ""};
+                cat->token = {TokenType::OR, "|"};
                 cat->leftChild = group;
                 cat->rightChild = groupItem;
 
