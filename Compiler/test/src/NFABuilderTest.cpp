@@ -649,3 +649,25 @@ TEST(NFABuilderTest, characterClassNFA)
     ASSERT_EQ(testSet, inputAlphabet);
     }
 }
+
+TEST(NFABuilderTest, anyChar)
+{
+    //.
+    AST *ast = new AST;
+    Node *node = new Node;
+    node->leftChild = node->rightChild = nullptr;
+    node->token = {TokenType::ANY_SIGLE_CHAR_EXCEPT_NEWLINE, "."};
+    ast->topNode = node;
+
+    NFABuilder builder;
+    NFA *nfa = builder.fromAST(ast);
+    ASSERT_TRUE(nfa != nullptr);
+    ASSERT_EQ(6, nfa->stateSet.size());
+     std::set<FASymbol> inputAlphabet = nfa->alphabet;
+    std::set<FASymbol> testSet;
+    FASymbol sa = {9, 9};
+    FASymbol sb = {32, 127};
+    testSet.insert(sa);
+    testSet.insert(sb);
+    ASSERT_EQ(testSet, inputAlphabet);
+}

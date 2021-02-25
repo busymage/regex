@@ -27,6 +27,11 @@ FASymbol notWordSymbol[] = {
     {123,126}
 };
 
+FASymbol AnyCharButNewLIneSymbol[] = {
+    {9,9},
+    {32,127}
+};
+
 Node *constructTreeWithRangeCharacter(char lower, char higher)
 {
     Node *node = new Node;
@@ -101,6 +106,10 @@ struct NFABuilder::Impl
             return;
         } else if(token.type == TokenType::ANY_SINGLE_NOT_WORD){
             AST *ast = constructAstFromSymbols(notWordSymbol, sizeof(notWordSymbol)/ sizeof(FASymbol));
+            BuildNFA(ast->topNode);
+            return;
+        } else if(token.type == TokenType::ANY_SIGLE_CHAR_EXCEPT_NEWLINE){
+            AST *ast = constructAstFromSymbols(AnyCharButNewLIneSymbol, sizeof(AnyCharButNewLIneSymbol)/ sizeof(FASymbol));
             BuildNFA(ast->topNode);
             return;
         }

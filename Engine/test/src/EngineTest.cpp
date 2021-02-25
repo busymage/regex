@@ -102,7 +102,6 @@ TEST(EngineTest, accpetAnyDigit)
 
 TEST(EngineTest, accpetAnyNotDigit)
 {
-    {
     Engine e("(\\D)+");
     ASSERT_TRUE(e.accept("abc"));
     ASSERT_TRUE(e.accept("#$%)"));
@@ -111,12 +110,10 @@ TEST(EngineTest, accpetAnyNotDigit)
     
     ASSERT_FALSE(e.accept("123"));
     ASSERT_FALSE(e.accept("0"));
-    }
 }
 
 TEST(EngineTest, accpetAnyWord)
 {
-    {
     Engine e("(\\w)+");
     ASSERT_TRUE(e.accept("abc"));
     ASSERT_TRUE(e.accept("123"));
@@ -124,19 +121,16 @@ TEST(EngineTest, accpetAnyWord)
     ASSERT_FALSE(e.accept("(\\D)+"));
     ASSERT_FALSE(e.accept("ABC "));
     ASSERT_FALSE(e.accept("#$%)"));
-    }
 }
 
 TEST(EngineTest, accpetAnyNotWord)
 {
-    {
     Engine e("(\\W)+");
     ASSERT_TRUE(e.accept("*-+=)"));
     ASSERT_TRUE(e.accept("#$%)"));
     ASSERT_FALSE(e.accept("Ab_1"));	
     ASSERT_FALSE(e.accept("(\\D)+"));
     ASSERT_FALSE(e.accept("ABC "));
-    }
 }
 
 
