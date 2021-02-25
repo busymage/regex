@@ -27,7 +27,7 @@ namespace{
             topNode->leftChild = copyNodes(node->leftChild);
         }
         if(node->rightChild != nullptr){
-            topNode->leftChild = copyNodes(node->rightChild);
+            topNode->rightChild = copyNodes(node->rightChild);
         }
         return topNode;
     }
