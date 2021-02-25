@@ -23,7 +23,7 @@ struct DFABuilder::Impl
     NFA *nfa;
     Temp *temp = nullptr;
 
-    FANode *CreateDFANode()
+    FANode *CreateDFANode(DFA *dfa)
     {
         if(temp == nullptr){
             return nullptr;
@@ -34,6 +34,7 @@ struct DFABuilder::Impl
             abort();
         }
         node->state = temp->nextState++;
+        dfa->stateSet[node->state] = node;
         return node;
     }
 
@@ -83,7 +84,9 @@ struct DFABuilder::Impl
         for (size_t i = 0; i < node->edges.size(); i++)
         {
             Edge e = node->edges[i];
-            if (e.lable == '\0' && alreadyWalkNode.count(e.destination->state) == 0)
+            if (e.lable.lowerBound == '\0' && 
+                e.lable.higherBound == '\0' &&
+                alreadyWalkNode.count(e.destination->state) == 0)
             {
                 epsilonClosure(e.destination, alreadyWalkNode);
             }
@@ -114,8 +117,7 @@ DFA *DFABuilder::build()
         return nullptr;
     }
 
-    dfa->start = impl_->CreateDFANode();
-    dfa->initalState = dfa->start->state;
+    dfa->start = impl_->CreateDFANode(dfa);
     dfa->stateSet[dfa->start->state] = dfa->start;
     std::set<unsigned char> nfaState = epsilonClosure(impl_->nfa->start);
     if(nfaState.count(impl_->nfa->accept->state) > 0){
@@ -137,14 +139,14 @@ DFA *DFABuilder::build()
                 nodeInfo.isMark = true;
                 markcount++;
                             
-                for (char alpha : impl_->nfa->alphabet)
+                for (FASymbol alpha : impl_->nfa->alphabet)
                 {
                     nfaState = epsilonClosure(move(currentNfaState, alpha));
                     if(nfaState.empty()){
                         continue;
                     }
                     if(!impl_->alreadyInStates(nfaState)){
-                        FANode *newNode = impl_->CreateDFANode();
+                        FANode *newNode = impl_->CreateDFANode(dfa);
                         dfa->stateSet[newNode->state] = newNode;
                         if(nfaState.count(impl_->nfa->accept->state) > 0){
                             newNode->isAcceptState = true;
@@ -195,7 +197,7 @@ std::set<unsigned char> DFABuilder::epsilonClosure(const std::set<unsigned char>
     return retStates;
 }
 
-std::set<unsigned char> DFABuilder::move(std::set<unsigned char> &states, char c)
+std::set<unsigned char> DFABuilder::move(std::set<unsigned char> &states, FASymbol c)
 {
     std::set<unsigned char> retStates;
     for (unsigned char state : states)

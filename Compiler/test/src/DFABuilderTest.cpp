@@ -136,9 +136,10 @@ TEST(DFABuilderTest, move)
 
     nfa->start = n6;
     nfa->accept = n13;
-    nfa->alphabet.insert('a');
-    nfa->alphabet.insert('b');
-    nfa->initalState = 6;
+    FASymbol symbola = {'a','a'};
+    FASymbol symbolb = {'b','b'};
+    nfa->alphabet.insert(symbola);
+    nfa->alphabet.insert(symbolb);
     for (size_t i = 0; i < nfaNodes.size(); i++)
     {
         nfa->stateSet[i] = nfaNodes[i];
@@ -147,11 +148,11 @@ TEST(DFABuilderTest, move)
     DFABuilder builder(nfa);
     std::set<unsigned char> states = builder.epsilonClosure(nfa->start);
     
-    std::set<unsigned char> states1 = builder.move(states, 'a');
+    std::set<unsigned char> states1 = builder.move(states, symbola);
     std::set<unsigned char> testSet = {1};
     ASSERT_EQ(states1, testSet);
     
-    states1 = builder.move(states, 'b');
+    states1 = builder.move(states, symbolb);
     testSet = {3,9};
     ASSERT_EQ(states1, testSet);
 }
@@ -214,9 +215,10 @@ TEST(DFABuilderTest, epsilonClosureWithSet)
 
     nfa->start = n6;
     nfa->accept = n13;
-    nfa->alphabet.insert('a');
-    nfa->alphabet.insert('b');
-    nfa->initalState = 6;
+    FASymbol symbola = {'a','a'};
+    FASymbol symbolb = {'b','b'};
+    nfa->alphabet.insert(symbola);
+    nfa->alphabet.insert(symbolb);
     for (size_t i = 0; i < nfaNodes.size(); i++)
     {
         nfa->stateSet[i] = nfaNodes[i];
@@ -292,9 +294,10 @@ TEST(DFABuilderTest, build)
 
     nfa->start = n6;
     nfa->accept = n13;
-    nfa->alphabet.insert('a');
-    nfa->alphabet.insert('b');
-    nfa->initalState = 6;
+    FASymbol symbola = {'a','a'};
+    FASymbol symbolb = {'b','b'};
+    nfa->alphabet.insert(symbola);
+    nfa->alphabet.insert(symbolb);
     for (size_t i = 0; i < nfaNodes.size(); i++)
     {
         nfa->stateSet[i] = nfaNodes[i];
@@ -303,7 +306,6 @@ TEST(DFABuilderTest, build)
     DFABuilder builder(nfa);
     DFA *dfa = builder.build();
     ASSERT_EQ('A', dfa->start->state);
-    ASSERT_EQ('A', dfa->initalState);
     ASSERT_EQ('E', dfa->accept->state);
     ASSERT_EQ(5, dfa->stateSet.size());
 
@@ -323,28 +325,28 @@ TEST(DFABuilderTest, build)
     ASSERT_NE(nullptr, na);
     ASSERT_EQ(2, ne->edges.size());
 
-    ASSERT_EQ('a', na->edges[0].lable);
-    ASSERT_EQ('b', na->edges[1].lable);
+    ASSERT_EQ('a', na->edges[0].lable.lowerBound);
+    ASSERT_EQ('b', na->edges[1].lable.lowerBound);
     ASSERT_EQ(nb, na->edges[0].destination);
     ASSERT_EQ(nc, na->edges[1].destination);
     
-    ASSERT_EQ('a', nb->edges[0].lable);
-    ASSERT_EQ('b', nb->edges[1].lable);
+    ASSERT_EQ('a', nb->edges[0].lable.lowerBound);
+    ASSERT_EQ('b', nb->edges[1].lable.lowerBound);
     ASSERT_EQ(nb, na->edges[0].destination);
     ASSERT_EQ(nc, na->edges[1].destination);
 
-    ASSERT_EQ('a', nc->edges[0].lable);
-    ASSERT_EQ('b', nc->edges[1].lable);
+    ASSERT_EQ('a', nc->edges[0].lable.lowerBound);
+    ASSERT_EQ('b', nc->edges[1].lable.lowerBound);
     ASSERT_EQ(nd, nc->edges[0].destination);
     ASSERT_EQ(nc, nc->edges[1].destination);
 
-    ASSERT_EQ('a', nd->edges[0].lable);
-    ASSERT_EQ('b', nd->edges[1].lable);
+    ASSERT_EQ('a', nd->edges[0].lable.lowerBound);
+    ASSERT_EQ('b', nd->edges[1].lable.lowerBound);
     ASSERT_EQ(ne, nd->edges[0].destination);
     ASSERT_EQ(nc, nd->edges[1].destination);
 
-    ASSERT_EQ('a', ne->edges[0].lable);
-    ASSERT_EQ('b', ne->edges[1].lable);
+    ASSERT_EQ('a', ne->edges[0].lable.lowerBound);
+    ASSERT_EQ('b', ne->edges[1].lable.lowerBound);
     ASSERT_EQ(nb, ne->edges[0].destination);
     ASSERT_EQ(nc, ne->edges[1].destination);
 }
@@ -407,9 +409,10 @@ TEST(DFABuilderTest, buildMultipleTimeGetSameDfa)
 
     nfa->start = n6;
     nfa->accept = n13;
-    nfa->alphabet.insert('a');
-    nfa->alphabet.insert('b');
-    nfa->initalState = 6;
+    FASymbol symbola = {'a','a'};
+    FASymbol symbolb = {'b','b'};
+    nfa->alphabet.insert(symbola);
+    nfa->alphabet.insert(symbolb);
     for (size_t i = 0; i < nfaNodes.size(); i++)
     {
         nfa->stateSet[i] = nfaNodes[i];
@@ -438,7 +441,7 @@ TEST(DFABuilderTest, buildaStar)
     FANode *n1 = nfaNodes[1];
     FANode *n2 = nfaNodes[2];
     FANode *n3 = nfaNodes[3];
-     FANode *n5 = nfaNodes[5];
+    FANode *n5 = nfaNodes[5];
     FANode *n6 = nfaNodes[6];
     FANode *n7 = nfaNodes[7];
     n0->edges.push_back((Edge){n1, '\0'});
@@ -449,8 +452,8 @@ TEST(DFABuilderTest, buildaStar)
 
     nfa->start = n0;
     nfa->accept = n3;
-    nfa->alphabet.insert('a');
-    nfa->initalState = 6;
+    FASymbol symbola = {'a','a'};
+    nfa->alphabet.insert(symbola);
     for (size_t i = 0; i < nfaNodes.size(); i++)
     {
         nfa->stateSet[i] = nfaNodes[i];
@@ -468,10 +471,10 @@ TEST(DFABuilderTest, buildaStar)
     ASSERT_TRUE(nb->isAcceptState);
     ASSERT_EQ(na->edges.size(), 1);
     ASSERT_EQ(na->edges[0].destination, nb);
-    ASSERT_EQ(na->edges[0].lable, 'a');
+    ASSERT_EQ(na->edges[0].lable.lowerBound, 'a');
     ASSERT_EQ(nb->edges.size(), 1);
     ASSERT_EQ(nb->edges[0].destination, nb);
-    ASSERT_EQ(nb->edges[0].lable, 'a');
+    ASSERT_EQ(nb->edges[0].lable.lowerBound, 'a');
 }
 
 TEST(DFABuilderTest, buildaOrbStar)
@@ -506,9 +509,10 @@ TEST(DFABuilderTest, buildaOrbStar)
 
     nfa->start = n0;
     nfa->accept = n7;
-    nfa->alphabet.insert('a');
-    nfa->alphabet.insert('b');
-    nfa->initalState = 0;
+    FASymbol symbola = {'a','a'};
+    FASymbol symbolb = {'b','b'};
+    nfa->alphabet.insert(symbola);
+    nfa->alphabet.insert(symbolb);
     for (size_t i = 0; i < nfaNodes.size(); i++)
     {
         nfa->stateSet[i] = nfaNodes[i];
@@ -529,19 +533,19 @@ TEST(DFABuilderTest, buildaOrbStar)
     ASSERT_TRUE(nc->isAcceptState);
     ASSERT_EQ(na->edges.size(), 2);
     ASSERT_EQ(na->edges[0].destination, nb);
-    ASSERT_EQ(na->edges[0].lable, 'a');
+    ASSERT_EQ(na->edges[0].lable.lowerBound, 'a');
     ASSERT_EQ(na->edges[1].destination, nc);
-    ASSERT_EQ(na->edges[1].lable, 'b');
+    ASSERT_EQ(na->edges[1].lable.lowerBound, 'b');
     ASSERT_EQ(nb->edges.size(), 2);
     ASSERT_EQ(nb->edges[0].destination, nb);
-    ASSERT_EQ(nb->edges[0].lable, 'a');
+    ASSERT_EQ(nb->edges[0].lable.lowerBound, 'a');
     ASSERT_EQ(nb->edges[1].destination, nc);
-    ASSERT_EQ(nb->edges[1].lable, 'b');
+    ASSERT_EQ(nb->edges[1].lable.lowerBound, 'b');
     ASSERT_EQ(nc->edges.size(), 2);
     ASSERT_EQ(nc->edges[0].destination, nb);
-    ASSERT_EQ(nc->edges[0].lable, 'a');
+    ASSERT_EQ(nc->edges[0].lable.lowerBound, 'a');
     ASSERT_EQ(nc->edges[1].destination, nc);
-    ASSERT_EQ(nc->edges[1].lable, 'b');
+    ASSERT_EQ(nc->edges[1].lable.lowerBound, 'b');
 }
 
 TEST(DFABuilderTest, buildaQustionMark)
@@ -577,8 +581,8 @@ TEST(DFABuilderTest, buildaQustionMark)
 
     nfa->start = n0;
     nfa->accept = n5;
-    nfa->initalState = n0->state;
-    nfa->alphabet.insert('a');
+    FASymbol symbola = {'a','a'};
+    nfa->alphabet.insert(symbola);
 
     DFABuilder builder(nfa);
     DFA *dfa1 = builder.build();
@@ -590,6 +594,6 @@ TEST(DFABuilderTest, buildaQustionMark)
     ASSERT_TRUE(nb->isAcceptState);
     ASSERT_EQ(na->edges.size(), 1);
     ASSERT_EQ(na->edges[0].destination, nb);
-    ASSERT_EQ(na->edges[0].lable, 'a');
+    ASSERT_EQ(na->edges[0].lable.lowerBound, 'a');
     ASSERT_EQ(nb->edges.size(), 0);
 }

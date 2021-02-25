@@ -14,7 +14,7 @@ TEST(NFABuilderTest, empty)
     FANode *startNode = nfa->start;
     FANode *acceptNode = nfa->accept;
     ASSERT_EQ(1, startNode->edges.size());
-    ASSERT_EQ('\0', startNode->edges[0].lable);
+    ASSERT_EQ('\0', startNode->edges[0].lable.lowerBound);
     ASSERT_EQ(acceptNode, startNode->edges[0].destination);
 }
 
@@ -34,8 +34,9 @@ TEST(NFABuilderTest, singleCharacter)
     ASSERT_EQ(1, startNode->edges.size());
     ASSERT_EQ(acceptNode, startNode->edges[0].destination);
 
-    std::set<char> inputAlphabet = nfa->alphabet;
-    ASSERT_EQ(std::set<char>{'a'}, inputAlphabet);
+    std::set<FASymbol> inputAlphabet = nfa->alphabet;
+    FASymbol symbol = {'a','a'};
+    ASSERT_EQ(std::set<FASymbol>{symbol}, inputAlphabet);
 }
 
 TEST(NFABuilderTest, Union)
@@ -74,10 +75,12 @@ TEST(NFABuilderTest, Union)
         ASSERT_EQ(edge.destination->edges[0].destination->edges[0].destination, nfa->accept);
     }
 
-    std::set<char> inputAlphabet = nfa->alphabet;
-    std::set<char> testSet;
-    testSet.insert('a');
-    testSet.insert('b');
+    std::set<FASymbol> inputAlphabet = nfa->alphabet;
+    std::set<FASymbol> testSet;
+    FASymbol sa = {'a', 'a'};
+    FASymbol sb = {'b', 'b'};
+    testSet.insert(sa);
+    testSet.insert(sb);
     ASSERT_EQ(testSet, inputAlphabet);
 }
 
@@ -122,10 +125,12 @@ TEST(NFABuilderTest, concatenation)
     ASSERT_EQ(n4, nfa->accept);
     ASSERT_EQ(0, n4->edges.size());
 
-    std::set<char> inputAlphabet = nfa->alphabet;
-    std::set<char> testSet;
-    testSet.insert('a');
-    testSet.insert('b');
+    std::set<FASymbol> inputAlphabet = nfa->alphabet;
+    std::set<FASymbol> testSet;
+     FASymbol sa = {'a', 'a'};
+    FASymbol sb = {'b', 'b'};
+    testSet.insert(sa);
+    testSet.insert(sb);
     ASSERT_EQ(testSet, inputAlphabet);
 }
 
@@ -176,8 +181,11 @@ TEST(NFABuilderTest, closure)
         ASSERT_NE(n, n3);
     }
 
-    std::set<char> inputAlphabet = nfa->alphabet;
-    ASSERT_EQ(std::set<char>{'a'}, inputAlphabet);
+    std::set<FASymbol> inputAlphabet = nfa->alphabet;
+    std::set<FASymbol> testSet;
+     FASymbol sa = {'a', 'a'};
+    testSet.insert(sa);
+    ASSERT_EQ(testSet, inputAlphabet);
 }
 
 TEST(NFABuilderTest, aOrbGroupFollowByStar)
@@ -226,50 +234,51 @@ TEST(NFABuilderTest, aOrbGroupFollowByStar)
     FANode *n7 = nfa->stateSet[7];
     ASSERT_TRUE(n7 != nullptr);
 
-    ASSERT_EQ(6, nfa->initalState);
     ASSERT_EQ(n6, nfa->start);
     ASSERT_EQ(n7, nfa->accept);
 
     ASSERT_EQ(1, n0->edges.size());
-    ASSERT_EQ('a', n0->edges[0].lable);
+    ASSERT_EQ('a', n0->edges[0].lable.lowerBound);
     ASSERT_EQ(n1, n0->edges[0].destination);
 
     ASSERT_EQ(1, n1->edges.size());
-    ASSERT_EQ('\0', n1->edges[0].lable);
+    ASSERT_EQ('\0', n1->edges[0].lable.lowerBound);
     ASSERT_EQ(n5, n1->edges[0].destination);
 
     ASSERT_EQ(1, n2->edges.size());
-    ASSERT_EQ('b', n2->edges[0].lable);
+    ASSERT_EQ('b', n2->edges[0].lable.lowerBound);
     ASSERT_EQ(n3, n2->edges[0].destination);
 
     ASSERT_EQ(1, n3->edges.size());
-    ASSERT_EQ('\0', n3->edges[0].lable);
+    ASSERT_EQ('\0', n3->edges[0].lable.lowerBound);
     ASSERT_EQ(n5, n3->edges[0].destination);
     
     ASSERT_EQ(2, n4->edges.size());
-    ASSERT_EQ('\0', n4->edges[0].lable);
+    ASSERT_EQ('\0', n4->edges[0].lable.lowerBound);
     ASSERT_EQ(n0, n4->edges[0].destination);
-    ASSERT_EQ('\0', n4->edges[1].lable);
+    ASSERT_EQ('\0', n4->edges[1].lable.lowerBound);
     ASSERT_EQ(n2, n4->edges[1].destination);
 
     ASSERT_EQ(2, n5->edges.size());
-    ASSERT_EQ('\0', n5->edges[0].lable);
+    ASSERT_EQ('\0', n5->edges[0].lable.lowerBound);
     ASSERT_EQ(n4, n5->edges[0].destination);
-    ASSERT_EQ('\0', n5->edges[1].lable);
+    ASSERT_EQ('\0', n5->edges[1].lable.lowerBound);
     ASSERT_EQ(n7, n5->edges[1].destination);
 
     ASSERT_EQ(2, n6->edges.size());
-    ASSERT_EQ('\0', n6->edges[0].lable);
+    ASSERT_EQ('\0', n6->edges[0].lable.lowerBound);
     ASSERT_EQ(n4, n6->edges[0].destination);
-    ASSERT_EQ('\0', n6->edges[1].lable);
+    ASSERT_EQ('\0', n6->edges[1].lable.lowerBound);
     ASSERT_EQ(n7, n6->edges[1].destination);
 
     ASSERT_EQ(0, n7->edges.size());
 
-    std::set<char> inputAlphabet = nfa->alphabet;
-    std::set<char> testSet;
-    testSet.insert('a');
-    testSet.insert('b');
+    std::set<FASymbol> inputAlphabet = nfa->alphabet;
+    std::set<FASymbol> testSet;
+      FASymbol sa = {'a', 'a'};
+    FASymbol sb = {'b', 'b'};
+    testSet.insert(sa);
+    testSet.insert(sb);
     ASSERT_EQ(testSet, inputAlphabet);
 }
 
@@ -307,19 +316,18 @@ TEST(NFABuilderTest, aZeroOrOne)
 
     ASSERT_EQ(n1->edges.size(), 1);
     ASSERT_EQ(n1->edges[0].destination, n5);
-    ASSERT_EQ(n1->edges[0].lable, '\0');
-    ASSERT_EQ(n2->state, nfa->initalState);
+    ASSERT_EQ(n1->edges[0].lable.lowerBound, '\0');
     ASSERT_EQ(n2->edges.size(), 2);
     ASSERT_EQ(n2->edges[0].destination, n0);
-    ASSERT_EQ(n2->edges[0].lable, '\0');
+    ASSERT_EQ(n2->edges[0].lable.lowerBound, '\0');
     ASSERT_EQ(n2->edges[1].destination, n3);
-    ASSERT_EQ(n2->edges[1].lable, '\0');
+    ASSERT_EQ(n2->edges[1].lable.lowerBound, '\0');
     ASSERT_EQ(n3->edges.size(), 1);
     ASSERT_EQ(n3->edges[0].destination, n4);
-    ASSERT_EQ(n3->edges[0].lable, '\0');
+    ASSERT_EQ(n3->edges[0].lable.lowerBound, '\0');
     ASSERT_EQ(n4->edges.size(), 1);
     ASSERT_EQ(n4->edges[0].destination, n5);
-    ASSERT_EQ(n4->edges[0].lable, '\0');
+    ASSERT_EQ(n4->edges[0].lable.lowerBound, '\0');
     ASSERT_EQ(n5->edges.size(), 0);
     ASSERT_TRUE(n5->isAcceptState);
 }
@@ -384,7 +392,6 @@ TEST(NFABuilderTest, mix)
     ASSERT_EQ(14, nfa->stateSet.size());
 
     ASSERT_EQ(6, nfa->start->state);
-    ASSERT_EQ(6, nfa->initalState);
     ASSERT_EQ(2, nfa->start->edges.size());
     FANode *n4 = nfa->start->edges[0].destination;
     FANode *n7 = nfa->start->edges[1].destination;
@@ -396,9 +403,11 @@ TEST(NFABuilderTest, mix)
     ASSERT_EQ(n7, n5->edges[1].destination);
     ASSERT_EQ(13, nfa->accept->state);
 
-    std::set<char> inputAlphabet = nfa->alphabet;
-    std::set<char> testSet;
-    testSet.insert('a');
-    testSet.insert('b');
+    std::set<FASymbol> inputAlphabet = nfa->alphabet;
+    std::set<FASymbol> testSet;
+      FASymbol sa = {'a', 'a'};
+    FASymbol sb = {'b', 'b'};
+    testSet.insert(sa);
+    testSet.insert(sb);
     ASSERT_EQ(testSet, inputAlphabet);
 }

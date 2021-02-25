@@ -20,7 +20,7 @@ class DFABuilder{
 
     std::set<unsigned char> epsilonClosure(const std::set<unsigned char> &states);
 
-    std::set<unsigned char> move(std::set<unsigned char> &states, char c);
+    std::set<unsigned char> move(std::set<unsigned char> &states, FASymbol c);
 
     private:
         struct Impl;

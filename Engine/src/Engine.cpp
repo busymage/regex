@@ -14,7 +14,8 @@ struct Engine::Impl{
         }
         for (size_t i = 0; i < node->edges.size(); i++)
         {
-            if(c == node->edges[i].lable){
+            if(c >= node->edges[i].lable.lowerBound &&
+            c <= node->edges[i].lable.higherBound){
                 currentState = node->edges[i].destination->state;
                 return true;
             }
@@ -34,7 +35,7 @@ Engine::Engine(const std::string &regexString)
 
 bool Engine::accept(const std::string &match)
 {
-    unsigned char currentState = impl_->dfa->initalState;
+    unsigned char currentState = impl_->dfa->start->state;
     for (size_t i = 0; i < match.length(); i++)
     {
         char c = match[i];

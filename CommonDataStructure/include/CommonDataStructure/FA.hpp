@@ -8,39 +8,68 @@
 
 struct FANode;
 
+struct FASymbol{
+    char lowerBound;
+    char higherBound;
+};
+
+inline bool operator<(const FASymbol &lhs, const FASymbol &rhs)
+{
+    if(lhs.lowerBound < rhs.lowerBound){
+        return true;
+    } else if(lhs.lowerBound == rhs.lowerBound){
+        if(lhs.higherBound < rhs.higherBound){
+            return true;
+        }else{
+            return false;
+        }
+    } else{
+        return false;
+    }
+}
+
+inline bool operator==(const FASymbol &lhs, const FASymbol &rhs)
+{
+    return lhs.lowerBound == rhs.lowerBound && lhs.higherBound == rhs.higherBound;
+}
+
 struct Edge{
     FANode *destination;
-    char lable;
+    FASymbol lable;
 
     Edge(){}
 
-    Edge(FANode *node, char c)
+    Edge(FANode *dest, char c)
     {
-        destination = node;
-        lable = c;
+        destination = dest;
+        lable.higherBound = lable.lowerBound = c;
+    }
+
+    Edge(FANode *dest, FASymbol symbol)
+    {
+        destination = dest;
+        lable = symbol;
     }
 };
 
-struct FANode{
-    unsigned char state;
+using FAState = unsigned char;
+
+struct FANode{ 
+    FAState state;
     bool isAcceptState = false;
     std::vector<Edge> edges;
 };
 
-using NFATransactionTable = std::map<unsigned char, std::map<char, std::set<unsigned char>>>;
 
 struct NFA{
-    std::set<char> alphabet;
+    std::set<FASymbol> alphabet;
     std::map<unsigned char, FANode*> stateSet;
-    unsigned char initalState;
     FANode *start;
     FANode *accept; 
 };
 
 struct DFA{
-    std::set<char> alphabet;
     std::map<unsigned char, FANode*> stateSet;
-    unsigned char initalState;
     FANode *start;
     FANode *accept; 
 };

@@ -15,7 +15,7 @@ struct NFABuilder::Impl
 
     unsigned char nextState = 0;
 
-    FANode *CreateNFANode()
+    FANode *CreateNFANode(NFA *nfa)
     {
         FANode *node = new FANode;
         if (node == nullptr)
@@ -23,19 +23,18 @@ struct NFABuilder::Impl
             abort();
         }
         node->state = nextState++;
+        nfa->stateSet[node->state] = node;
         return node;
     }
 
     void leaf(Token token)
     {
         NFA *nfa = new NFA;
-        nfa->start = CreateNFANode();
-        nfa->accept = CreateNFANode();
-        nfa->stateSet[nfa->start->state] = nfa->start;
-        nfa->stateSet[nfa->accept->state] =  nfa->accept;
-        nfa->start->edges.push_back({nfa->accept, token.value[0]});
-        nfa->alphabet.insert(token.value[0]);
-        nfa->initalState = nfa->start->state;
+        nfa->start = CreateNFANode(nfa);
+        nfa->accept = CreateNFANode(nfa);
+        nfa->start->edges.emplace_back(nfa->accept, token.value[0]);
+        FASymbol symbol = {token.value[0], token.value[0]};
+        nfa->alphabet.insert(symbol);
         stack.push_back(nfa);
     }
 
@@ -44,13 +43,11 @@ struct NFABuilder::Impl
         NFA *nfa = stack[stack.size() - 1];
         stack.pop_back();
 
-        FANode *start = CreateNFANode();
-        FANode *accept = CreateNFANode();
-        nfa->stateSet[start->state] = start;
-        nfa->stateSet[accept->state] =  accept;
+        FANode *start = CreateNFANode(nfa);
+        FANode *accept = CreateNFANode(nfa);
 
-        Edge toOldStart = {nfa->start, '\0'};
-        Edge toNewAccept = {accept, '\0'};
+        Edge toOldStart(nfa->start, '\0');
+        Edge toNewAccept(accept, '\0');
         start->edges.push_back(toOldStart);
         start->edges.push_back(toNewAccept);
         nfa->accept->edges.push_back(toOldStart);
@@ -58,20 +55,17 @@ struct NFABuilder::Impl
 
         nfa->start = start;
         nfa->accept = accept;
-        nfa->initalState = nfa->start->state;
         stack.push_back(nfa);
     }
 
     NFA *buildEmptyNFA()
     {
         NFA *nfa = new NFA;
-        nfa->start = CreateNFANode();
-        nfa->accept = CreateNFANode();
-        nfa->stateSet[nfa->start->state] = nfa->start;
-        nfa->stateSet[nfa->accept->state] =  nfa->accept;
-        Edge edge = {nfa->accept, '\0'};
+        nfa->start = CreateNFANode(nfa);
+        nfa->accept = CreateNFANode(nfa);
+
+        Edge edge(nfa->accept, '\0');
         nfa->start->edges.push_back(edge);
-        nfa->initalState = nfa->start->state;
         return nfa;
     }
 
@@ -93,24 +87,22 @@ struct NFABuilder::Impl
         if (astNode->token.type == TokenType::OR)
         {
             NFA *nfa = new NFA;
-            nfa->start = CreateNFANode();
-            nfa->accept = CreateNFANode();
-            nfa->stateSet[nfa->start->state] = nfa->start;
-            nfa->stateSet[nfa->accept->state] =  nfa->accept;
+            nfa->start = CreateNFANode(nfa);
+            nfa->accept = CreateNFANode(nfa);
 
             NFA *nfa2 = stack[stack.size() - 1];
             stack.pop_back();
             NFA *nfa1 = stack[stack.size() - 1];
             stack.pop_back();
 
-            Edge edge1 = {nfa1->start, '\0'};
+            Edge edge1(nfa1->start, '\0');
             nfa->start->edges.push_back(edge1);
-            Edge edge2 = {nfa2->start, '\0'};
+            Edge edge2(nfa2->start, '\0');
             nfa->start->edges.push_back(edge2);
 
-            Edge edge3 = {nfa->accept, '\0'};
+            Edge edge3(nfa->accept, '\0');
             nfa1->accept->edges.push_back(edge3);
-            Edge edge4 = {nfa->accept, '\0'};
+            Edge edge4(nfa->accept, '\0');
             nfa2->accept->edges.push_back(edge4);
 
 
@@ -121,7 +113,6 @@ struct NFABuilder::Impl
 
             delete nfa1;
             delete nfa2;
-            nfa->initalState = nfa->start->state;
             stack.push_back(nfa);
             return;
         }
@@ -133,13 +124,12 @@ struct NFABuilder::Impl
             NFA *nfa1 = stack[stack.size() - 1];
             stack.pop_back();
 
-            Edge edge = {nfa2->start, '\0'};
+            Edge edge(nfa2->start, '\0');
             nfa1->accept->edges.push_back(edge);
             nfa1->accept = nfa2->accept;
             nfa1->alphabet.insert(nfa2->alphabet.begin(), nfa2->alphabet.end());
             nfa1->stateSet.insert(nfa2->stateSet.begin(), nfa2->stateSet.end());
             delete nfa2;
-            nfa1->initalState = nfa1->start->state;
             stack.push_back(nfa1);
             return;
         }
@@ -155,19 +145,16 @@ struct NFABuilder::Impl
             NFA *nfa = stack[stack.size() - 1];
             stack.pop_back();
             //create four node
-            FANode *n0 = CreateNFANode();
-            FANode *n1 = CreateNFANode();
-            FANode *n2 = CreateNFANode();
-            FANode *n3 = CreateNFANode();
-            nfa->stateSet[n0->state] = n0;
-            nfa->stateSet[n1->state] = n1;
-            nfa->stateSet[n2->state] = n2;
-            nfa->stateSet[n3->state] = n3;
+            FANode *n0 = CreateNFANode(nfa);
+            FANode *n1 = CreateNFANode(nfa);
+            FANode *n2 = CreateNFANode(nfa);
+            FANode *n3 = CreateNFANode(nfa);
+
             n3->isAcceptState = true;
-            Edge toOladStart = {nfa->start, '\0'};
-            Edge ton1= {n1, '\0'};
-            Edge ton2= {n2, '\0'};
-            Edge toNewAccept= {n3, '\0'};
+            Edge toOladStart(nfa->start, '\0');
+            Edge ton1(n1, '\0');
+            Edge ton2(n2, '\0');
+            Edge toNewAccept(n3, '\0');
             n0->edges.push_back(toOladStart);
             n0->edges.push_back(ton1);
             n1->edges.push_back(ton2);
@@ -177,7 +164,6 @@ struct NFABuilder::Impl
             //reset new start and accept
             nfa->start = n0;
             nfa->accept = n3;
-            nfa->initalState = nfa->start->state;
 
             stack.push_back(nfa);
             return;
