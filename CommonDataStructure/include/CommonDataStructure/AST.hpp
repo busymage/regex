@@ -6,12 +6,12 @@
 
 struct Node{
     Token token;
-    Node* leftChild;
-    Node* rightChild;
+    Node* leftChild = nullptr;
+    Node* rightChild = nullptr;
 };
 
 struct AST{
-    Node *topNode;
+    Node *topNode = nullptr;
 };
 
 #endif

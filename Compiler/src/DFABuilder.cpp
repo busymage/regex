@@ -118,7 +118,6 @@ DFA *DFABuilder::build()
     }
 
     dfa->start = impl_->CreateDFANode(dfa);
-    dfa->stateSet[dfa->start->state] = dfa->start;
     std::set<unsigned char> nfaState = epsilonClosure(impl_->nfa->start);
     if(nfaState.count(impl_->nfa->accept->state) > 0){
         dfa->start->isAcceptState = true;

@@ -405,9 +405,247 @@ TEST(NFABuilderTest, mix)
 
     std::set<FASymbol> inputAlphabet = nfa->alphabet;
     std::set<FASymbol> testSet;
-      FASymbol sa = {'a', 'a'};
+    FASymbol sa = {'a', 'a'};
     FASymbol sb = {'b', 'b'};
     testSet.insert(sa);
     testSet.insert(sb);
     ASSERT_EQ(testSet, inputAlphabet);
+}
+
+TEST(NFABuilderTest, multipleOr)
+{
+    //a|b|c
+    AST *ast = new AST;
+    Node *node = new Node;
+    node->leftChild = node->rightChild = nullptr;
+    node->token = {TokenType::OR, "|"};
+    ast->topNode = node;
+
+    Node *or_ = new Node;
+    or_->leftChild = or_->rightChild = nullptr;
+    or_->token = {TokenType::OR, "|"}; 
+
+    Node *c = new Node;
+    c->leftChild = c->rightChild = nullptr;
+    c->token = {TokenType::CHAR, "c"};
+    node->leftChild = or_;
+    node->rightChild = c;
+
+    Node *a = new Node;
+    a->leftChild = a->rightChild = nullptr;
+    a->token = {TokenType::CHAR, "a"};
+    Node *b = new Node;
+    b->leftChild = b->rightChild = nullptr;
+    b->token = {TokenType::CHAR, "b"};
+    or_->leftChild = a;
+    or_->rightChild = b;
+
+    NFABuilder builder;
+    NFA *nfa = builder.fromAST(ast);
+    ASSERT_TRUE(nfa != nullptr);
+    ASSERT_EQ(10, nfa->stateSet.size());
+    FANode *n0 = nfa->stateSet[0];
+    FANode *n1 = nfa->stateSet[1];
+
+    std::set<FASymbol> inputAlphabet = nfa->alphabet;
+    std::set<FASymbol> testSet;
+    FASymbol sa = {'a', 'a'};
+    FASymbol sb = {'b', 'b'};
+    FASymbol sc = {'c', 'c'};
+    testSet.insert(sa);
+    testSet.insert(sb);
+    testSet.insert(sc);
+    ASSERT_EQ(testSet, inputAlphabet);
+}
+
+TEST(NFABuilderTest, characterRange)
+{
+    AST *ast = new AST;
+    Node *node = new Node;
+    node->leftChild = node->rightChild = nullptr;
+    node->token = {TokenType::CHARACTER_RANGE, "-"};
+    ast->topNode = node;
+
+    Node *a = new Node;
+    a->token = {TokenType::CHAR, "a"};
+    Node *b = new Node;
+    b->token = {TokenType::CHAR, "z"};
+    node->leftChild = a;
+    node->rightChild = b;
+
+    NFABuilder builder;
+    NFA *nfa = builder.fromAST(ast);
+    ASSERT_TRUE(nfa != nullptr);
+    ASSERT_EQ(2, nfa->stateSet.size());
+    FANode *n0 = nfa->stateSet[0];
+    ASSERT_TRUE(n0 != nullptr);
+    FANode *n1 = nfa->stateSet[1];
+    ASSERT_TRUE(n1 != nullptr);
+
+    ASSERT_EQ(n0->edges.size(), 1);
+    ASSERT_EQ(n0->edges[0].destination, n1);
+    ASSERT_EQ(n0->edges[0].lable.lowerBound, 'a');
+    ASSERT_EQ(n0->edges[0].lable.higherBound, 'z');
+    ASSERT_EQ(n1->edges.size(), 0);
+
+     std::set<FASymbol> inputAlphabet = nfa->alphabet;
+    std::set<FASymbol> testSet;
+    FASymbol sa = {'a', 'z'};
+    testSet.insert(sa);
+    ASSERT_EQ(testSet, inputAlphabet);
+}
+
+TEST(NFABuilderTest, characterClassNFA)
+{
+    {
+    //\d
+    AST *ast = new AST;
+    Node *node = new Node;
+    node->leftChild = node->rightChild = nullptr;
+    node->token = {TokenType::ANY_SINGLE_DIGIT, "\\d"};
+    ast->topNode = node;
+
+    NFABuilder builder;
+    NFA *nfa = builder.fromAST(ast);
+    ASSERT_TRUE(nfa != nullptr);
+    ASSERT_EQ(2, nfa->stateSet.size());
+    FANode *n0 = nfa->stateSet[0];
+    ASSERT_TRUE(n0 != nullptr);
+    FANode *n1 = nfa->stateSet[1];
+    ASSERT_TRUE(n1 != nullptr);
+
+    ASSERT_EQ(n0->edges.size(), 1);
+    ASSERT_EQ(n0->edges[0].destination, n1);
+    ASSERT_EQ(n0->edges[0].lable.lowerBound, '0');
+    ASSERT_EQ(n0->edges[0].lable.higherBound, '9');
+    ASSERT_EQ(n1->edges.size(), 0);
+    std::set<FASymbol> inputAlphabet = nfa->alphabet;
+    std::set<FASymbol> testSet;
+    FASymbol sa = {'0', '9'};
+    testSet.insert(sa);
+    ASSERT_EQ(testSet, inputAlphabet);
+    }
+
+    {
+    //\D = 0x9-0xa|0xd|0x20-2F|0x40-0x7f
+    AST *ast = new AST;
+    Node *node = new Node;
+    node->leftChild = node->rightChild = nullptr;
+    node->token = {TokenType::ANY_SINGLE_NOT_DIGIT, "\\D"};
+    ast->topNode = node;
+
+    NFABuilder builder;
+    NFA *nfa = builder.fromAST(ast);
+    ASSERT_TRUE(nfa != nullptr);
+    ASSERT_EQ(14, nfa->stateSet.size());
+    FANode *start = nfa->stateSet[12];
+    FANode *accpet = nfa->stateSet[13];
+    ASSERT_EQ(start, nfa->start);
+    ASSERT_EQ(accpet, nfa->accept);
+
+    FANode *n0 = nfa->stateSet[0];
+    ASSERT_EQ(n0->edges[0].lable.lowerBound, 0x9);
+    ASSERT_EQ(n0->edges[0].lable.higherBound, 0xa);
+    FANode *n2 = nfa->stateSet[2];
+    ASSERT_EQ(n2->edges[0].lable.lowerBound, 0xd);
+    ASSERT_EQ(n2->edges[0].lable.higherBound, 0xd);
+    FANode *n6 = nfa->stateSet[6];
+    ASSERT_EQ(n6->edges[0].lable.lowerBound, 0x20);
+    ASSERT_EQ(n6->edges[0].lable.higherBound, 0x2f);
+    FANode *n10 = nfa->stateSet[10];
+    ASSERT_EQ(n10->edges[0].lable.lowerBound, 0x40);
+    ASSERT_EQ(n10->edges[0].lable.higherBound, 0x7f);
+     std::set<FASymbol> inputAlphabet = nfa->alphabet;
+    std::set<FASymbol> testSet;
+    FASymbol sa = {0x9, 0xa};
+    FASymbol sb = {0xd, 0xd};
+    FASymbol sc = {0x20, 0x2f};
+    FASymbol sd = {0x40, 0x7f};
+    testSet.insert(sa);
+    testSet.insert(sb);
+    testSet.insert(sc);
+    testSet.insert(sd);
+    ASSERT_EQ(testSet, inputAlphabet);
+    }
+
+     {
+    //\w = 48-57|65-90|95|97-122
+    AST *ast = new AST;
+    Node *node = new Node;
+    node->leftChild = node->rightChild = nullptr;
+    node->token = {TokenType::ANY_SINGLE_WORD, "\\w"};
+    ast->topNode = node;
+
+    NFABuilder builder;
+    NFA *nfa = builder.fromAST(ast);
+    ASSERT_TRUE(nfa != nullptr);
+    ASSERT_EQ(14, nfa->stateSet.size());
+
+    FANode *n0 = nfa->stateSet[0];
+    ASSERT_EQ(n0->edges[0].lable.lowerBound, 48);
+    ASSERT_EQ(n0->edges[0].lable.higherBound, 57);
+    FANode *n2 = nfa->stateSet[2];
+    ASSERT_EQ(n2->edges[0].lable.lowerBound, 65);
+    ASSERT_EQ(n2->edges[0].lable.higherBound, 90);
+    FANode *n6 = nfa->stateSet[6];
+    ASSERT_EQ(n6->edges[0].lable.lowerBound, 95);
+    ASSERT_EQ(n6->edges[0].lable.higherBound, 95);
+    FANode *n10 = nfa->stateSet[10];
+    ASSERT_EQ(n10->edges[0].lable.lowerBound, 97);
+    ASSERT_EQ(n10->edges[0].lable.higherBound, 122);
+     std::set<FASymbol> inputAlphabet = nfa->alphabet;
+    std::set<FASymbol> testSet;
+    FASymbol sa = {48, 57};
+    FASymbol sb = {65, 90};
+    FASymbol sc = {95, 95};
+    FASymbol sd = {97, 122};
+    testSet.insert(sa);
+    testSet.insert(sb);
+    testSet.insert(sc);
+    testSet.insert(sd);
+    ASSERT_EQ(testSet, inputAlphabet);
+    }
+
+    {
+    //\W = 32-47|58-64|91-94|96|123-126
+    AST *ast = new AST;
+    Node *node = new Node;
+    node->leftChild = node->rightChild = nullptr;
+    node->token = {TokenType::ANY_SINGLE_NOT_WORD, "\\W"};
+    ast->topNode = node;
+
+    NFABuilder builder;
+    NFA *nfa = builder.fromAST(ast);
+    ASSERT_TRUE(nfa != nullptr);
+    ASSERT_EQ(18, nfa->stateSet.size());
+
+    FANode *n0 = nfa->stateSet[0];
+    ASSERT_EQ(n0->edges[0].lable.lowerBound, 32);
+    ASSERT_EQ(n0->edges[0].lable.higherBound, 47);
+    FANode *n2 = nfa->stateSet[2];
+    ASSERT_EQ(n2->edges[0].lable.lowerBound, 58);
+    ASSERT_EQ(n2->edges[0].lable.higherBound, 64);
+    FANode *n6 = nfa->stateSet[6];
+    ASSERT_EQ(n6->edges[0].lable.lowerBound, 91);
+    ASSERT_EQ(n6->edges[0].lable.higherBound, 94);
+    FANode *n10 = nfa->stateSet[10];
+    ASSERT_EQ(n10->edges[0].lable.lowerBound, 96);
+    ASSERT_EQ(n10->edges[0].lable.higherBound, 96);
+     FANode *n14 = nfa->stateSet[14];
+    ASSERT_EQ(n14->edges[0].lable.lowerBound, 123);
+    ASSERT_EQ(n14->edges[0].lable.higherBound, 126);
+     std::set<FASymbol> inputAlphabet = nfa->alphabet;
+    std::set<FASymbol> testSet;
+    FASymbol sa = {32, 47};
+    FASymbol sb = {58, 64};
+    FASymbol sc = {91, 94};
+    FASymbol sd = {96, 96};
+    FASymbol se = {123, 126};
+    testSet.insert(sa);
+    testSet.insert(sb);
+    testSet.insert(sc);
+    testSet.insert(sd);
+    testSet.insert(se);
+    ASSERT_EQ(testSet, inputAlphabet);
+    }
 }

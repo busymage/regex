@@ -31,12 +31,29 @@ namespace{
         }
         return topNode;
     }
+
 };
 
 struct Parser::Impl{
     std::unique_ptr<Scanner> scanner;
 
     Token currentToken;
+
+    Node *oneMore(Node *src)
+    {
+        Node *cat = new Node;
+        cat->token = {TokenType::CAT, ""};
+        cat->leftChild = src;
+        //*
+        Token token;
+        token.type = TokenType::ZERO_MORE;
+        token.value = "*";
+        cat->rightChild = createNode(token);
+        Node *srcCopy = copyNodes(src);
+        cat->rightChild->leftChild = srcCopy;
+        consume(TokenType::ONE_MORE);
+        return cat;
+    }
 
     bool consume(TokenType type)
     {
@@ -162,18 +179,7 @@ struct Parser::Impl{
     {
         Node *item = matchItem();
         if(TokenType::ONE_MORE == currentToken.type){
-            Node *cat = new Node;
-            cat->token = {TokenType::CAT, ""};
-            cat->leftChild = item;
-            //*
-            Token token;
-            token.type = TokenType::ZERO_MORE;
-            token.value = "*";
-            cat->rightChild = createNode(token);
-            Node *itemCopy = copyNodes(item);
-            cat->rightChild->leftChild = itemCopy;
-            consume(TokenType::ONE_MORE);
-            return cat;
+            return oneMore(item);
         }
         if(TokenType::ZERO_MORE == currentToken.type ||
             TokenType::ZERO_OR_ONE == currentToken.type){
@@ -195,8 +201,15 @@ struct Parser::Impl{
             return nullptr;
         }
         if(isQuantifierType(currentToken.type)){
-            group = CreateNodeForCurrentToken();
-            group->leftChild = expr;
+            if (TokenType::ONE_MORE == currentToken.type)
+            {
+                return oneMore(expr);
+            }
+            else
+            {
+                group = CreateNodeForCurrentToken();
+                group->leftChild = expr;
+            }
         } else {
             group = expr;
         }

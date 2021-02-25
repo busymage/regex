@@ -2,7 +2,69 @@
 #include <CommonDataStructure/FA.hpp>
 #include <CommonDataStructure/Token.hpp>
 #include <Compiler/NFABuilder.hpp>
+#include <string>
 #include <vector>
+
+FASymbol nonDigitalSymbol[] = {
+    {0x9, 0xa},
+    {0xd, 0xd},
+    {0x20,0x2f},
+    {0x40,0x7f}
+};
+
+FASymbol wordSymbol[] = {
+    {48,57},
+    {65,90},
+    {95,95},
+    {97,122}
+};
+
+FASymbol notWordSymbol[] = {
+    {32,47},
+    {58,64},
+    {91,94},
+    {96,96},
+    {123,126}
+};
+
+Node *constructTreeWithRangeCharacter(char lower, char higher)
+{
+    Node *node = new Node;
+    node->token.type = TokenType::CHARACTER_RANGE;
+    node->token.value = "-";
+    node->leftChild = new Node;
+    node->leftChild->token.type = TokenType ::CHAR;
+    node->leftChild->token.value = {lower};
+    node->rightChild = new Node;
+    node->rightChild->token.type = TokenType::CHAR;
+    node->rightChild->token.value = {higher};
+    return node;
+}
+
+AST *constructAstFromSymbols(FASymbol *symbols, size_t num)
+{
+    if(symbols == nullptr){
+        return nullptr;
+    }
+    AST *ast = new AST;
+    for (size_t i = 0; i < num; i++)
+    {
+        if(i > 0){
+            Node *oldTopNode = ast->topNode;
+            ast->topNode = new Node;
+            ast->topNode->token = {TokenType::OR, "|"};
+            ast->topNode->leftChild = oldTopNode;
+        }
+        FASymbol symbol = symbols[i];
+        Node *range = constructTreeWithRangeCharacter(symbol.lowerBound, symbol.higherBound);
+        if(ast->topNode == nullptr){
+            ast->topNode = range;
+        }else{
+            ast->topNode->rightChild = range;
+        }
+    }
+    return ast;
+}
 
 bool isLeaf(Node *node)
 {
@@ -29,11 +91,31 @@ struct NFABuilder::Impl
 
     void leaf(Token token)
     {
+        if(token.type == TokenType::ANY_SINGLE_NOT_DIGIT){
+            AST *ast = constructAstFromSymbols(nonDigitalSymbol, sizeof(nonDigitalSymbol)/ sizeof(FASymbol));
+            BuildNFA(ast->topNode);
+            return;
+        } else if(token.type == TokenType::ANY_SINGLE_WORD){
+            AST *ast = constructAstFromSymbols(wordSymbol, sizeof(wordSymbol)/ sizeof(FASymbol));
+            BuildNFA(ast->topNode);
+            return;
+        } else if(token.type == TokenType::ANY_SINGLE_NOT_WORD){
+            AST *ast = constructAstFromSymbols(notWordSymbol, sizeof(notWordSymbol)/ sizeof(FASymbol));
+            BuildNFA(ast->topNode);
+            return;
+        }
         NFA *nfa = new NFA;
         nfa->start = CreateNFANode(nfa);
         nfa->accept = CreateNFANode(nfa);
-        nfa->start->edges.emplace_back(nfa->accept, token.value[0]);
-        FASymbol symbol = {token.value[0], token.value[0]};
+        FASymbol symbol;
+        if(token.type == TokenType::ANY_SINGLE_DIGIT){
+            symbol.lowerBound = '0';
+            symbol.higherBound = '9';    
+        }
+         else{
+            symbol.higherBound = symbol.lowerBound = token.value[0];
+        }
+        nfa->start->edges.emplace_back(nfa->accept, symbol);
         nfa->alphabet.insert(symbol);
         stack.push_back(nfa);
     }
@@ -71,6 +153,14 @@ struct NFABuilder::Impl
 
     void BuildNFA(Node *astNode)
     {
+        if(astNode->token.type == TokenType::CHARACTER_RANGE){
+            NFA *nfa = buildEmptyNFA();
+            nfa->start->edges[0].lable = {astNode->leftChild->token.value[0], astNode->rightChild->token.value[0]};
+            nfa->alphabet.insert(nfa->start->edges[0].lable);
+            stack.push_back(nfa);
+            return;
+        }
+
         if (isLeaf(astNode))
         {
             leaf(astNode->token);

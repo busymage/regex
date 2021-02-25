@@ -429,6 +429,7 @@ TEST(DFABuilderTest, buildMultipleTimeGetSameDfa)
 
 TEST(DFABuilderTest, buildaStar)
 {
+    //a*
     NFA *nfa = new NFA;
     std::vector<FANode*> nfaNodes;
     for (size_t i = 0; i < 4; i++)
