@@ -17,7 +17,7 @@ TEST(CompilerTest, singleCharacter)
 
     ASSERT_EQ(1, na->edges.size());
     ASSERT_EQ('a', na->edges[0].lable.lowerBound);
-    ASSERT_EQ('a', na->edges[0].lable.higherBound);
+    ASSERT_EQ('a', na->edges[0].lable.upperBound);
     ASSERT_EQ(nb, na->edges[0].destination);
     ASSERT_EQ(0, nb->edges.size());
 }

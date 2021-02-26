@@ -15,7 +15,7 @@ struct Engine::Impl{
         for (size_t i = 0; i < node->edges.size(); i++)
         {
             if(c >= node->edges[i].lable.lowerBound &&
-            c <= node->edges[i].lable.higherBound){
+            c <= node->edges[i].lable.upperBound){
                 currentState = node->edges[i].destination->state;
                 return true;
             }

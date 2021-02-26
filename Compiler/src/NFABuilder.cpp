@@ -61,7 +61,7 @@ AST *constructAstFromSymbols(FASymbol *symbols, size_t num)
             ast->topNode->leftChild = oldTopNode;
         }
         FASymbol symbol = symbols[i];
-        Node *range = constructTreeWithRangeCharacter(symbol.lowerBound, symbol.higherBound);
+        Node *range = constructTreeWithRangeCharacter(symbol.lowerBound, symbol.upperBound);
         if(ast->topNode == nullptr){
             ast->topNode = range;
         }else{
@@ -119,10 +119,10 @@ struct NFABuilder::Impl
         FASymbol symbol;
         if(token.type == TokenType::ANY_SINGLE_DIGIT){
             symbol.lowerBound = '0';
-            symbol.higherBound = '9';    
+            symbol.upperBound = '9';    
         }
          else{
-            symbol.higherBound = symbol.lowerBound = token.value[0];
+            symbol.upperBound = symbol.lowerBound = token.value[0];
         }
         nfa->start->edges.emplace_back(nfa->accept, symbol);
         nfa->alphabet.insert(symbol);

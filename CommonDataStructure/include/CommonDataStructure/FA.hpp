@@ -10,7 +10,7 @@ struct FANode;
 
 struct FASymbol{
     char lowerBound;
-    char higherBound;
+    char upperBound;
 };
 
 inline bool operator<(const FASymbol &lhs, const FASymbol &rhs)
@@ -18,7 +18,7 @@ inline bool operator<(const FASymbol &lhs, const FASymbol &rhs)
     if(lhs.lowerBound < rhs.lowerBound){
         return true;
     } else if(lhs.lowerBound == rhs.lowerBound){
-        if(lhs.higherBound < rhs.higherBound){
+        if(lhs.upperBound < rhs.upperBound){
             return true;
         }else{
             return false;
@@ -30,7 +30,7 @@ inline bool operator<(const FASymbol &lhs, const FASymbol &rhs)
 
 inline bool operator==(const FASymbol &lhs, const FASymbol &rhs)
 {
-    return lhs.lowerBound == rhs.lowerBound && lhs.higherBound == rhs.higherBound;
+    return lhs.lowerBound == rhs.lowerBound && lhs.upperBound == rhs.upperBound;
 }
 
 struct Edge{
@@ -42,7 +42,7 @@ struct Edge{
     Edge(FANode *dest, char c)
     {
         destination = dest;
-        lable.higherBound = lable.lowerBound = c;
+        lable.upperBound = lable.lowerBound = c;
     }
 
     Edge(FANode *dest, FASymbol symbol)

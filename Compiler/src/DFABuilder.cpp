@@ -85,7 +85,7 @@ struct DFABuilder::Impl
         {
             Edge e = node->edges[i];
             if (e.lable.lowerBound == '\0' && 
-                e.lable.higherBound == '\0' &&
+                e.lable.upperBound == '\0' &&
                 alreadyWalkNode.count(e.destination->state) == 0)
             {
                 epsilonClosure(e.destination, alreadyWalkNode);
