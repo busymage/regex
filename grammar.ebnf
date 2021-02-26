@@ -1,0 +1,46 @@
+expression ::= Subexpression ( '|' Subexpression )*
+
+Subexpression ::= SubexpressionItem+
+
+SubexpressionItem ::= Match | Group
+
+Match ::= MatchItem Quantifier?
+
+Group ::= '(' Expression ')' Quantifier?
+
+MatchItem ::= '.'
+    | MatchCharacterClass
+    | MatchCharacter
+
+MatchCharacterClass ::= CharacterGroup | CharacterClass
+
+MatchCharacter ::= Char
+
+CharacterGroup ::= '[' CharacterGroupItem+ ']'
+
+CharacterGroupItem ::= CharacterClass
+           | CharacterRange
+           | Char
+
+CharacterClass ::= '\w'
+           | '\W'
+           | '\d'
+           | '\D'
+
+CharacterRange ::= Char ('-' Char)?
+
+Quantifier ::= *
+            | +
+            | ?
+            | QuantifierType
+
+RangeQuantifier
+        ::= '{' Integer ( ',' Integer? )? '}'
+
+Integer ::= [0-9]+
+
+Char ::= '\t'
+    | '\n'
+    | '\r'
+    | [0x20-0x7f]
+
