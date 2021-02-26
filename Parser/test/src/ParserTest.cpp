@@ -313,3 +313,42 @@ TEST(ParserTest, group)
     ASSERT_EQ(subExpression4->token.type, TokenType::ANY_SINGLE_DIGIT);
     ASSERT_EQ(subExpression4->token.value, "\\d");
 }
+
+TEST(ParserTest, rangeQuantifer)
+{
+    {
+    Parser parser("a{2}");
+    AST *ast = parser.parse();
+    ASSERT_EQ(ast->topNode->token.type, TokenType::RANGE_QUANTIFER);
+    ASSERT_EQ(ast->topNode->token.value, "2");
+    Node *expr = ast->topNode->leftChild;
+    ASSERT_EQ(expr->token.type, TokenType::CHAR);
+    ASSERT_EQ(expr->token.value, "a");
+    }
+
+    {
+    Parser parser("a{2,}");
+    AST *ast = parser.parse();
+    ASSERT_EQ(ast->topNode->token.type, TokenType::RANGE_QUANTIFER);
+    ASSERT_EQ(ast->topNode->token.value, "2,");
+    Node *expr = ast->topNode->leftChild;
+    ASSERT_EQ(expr->token.type, TokenType::CHAR);
+    ASSERT_EQ(expr->token.value, "a");
+    }
+
+    {
+    Parser parser("a{2,3}");
+    AST *ast = parser.parse();
+    ASSERT_EQ(ast->topNode->token.type, TokenType::RANGE_QUANTIFER);
+    ASSERT_EQ(ast->topNode->token.value, "2,3");
+    Node *expr = ast->topNode->leftChild;
+    ASSERT_EQ(expr->token.type, TokenType::CHAR);
+    ASSERT_EQ(expr->token.value, "a");
+    }
+
+    {
+    Parser parser("a{2:3}");
+    AST *ast = parser.parse();
+    ASSERT_EQ(nullptr, ast);
+    }
+}

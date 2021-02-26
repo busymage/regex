@@ -658,16 +658,177 @@ TEST(NFABuilderTest, anyChar)
     node->leftChild = node->rightChild = nullptr;
     node->token = {TokenType::ANY_SIGLE_CHAR_EXCEPT_NEWLINE, "."};
     ast->topNode = node;
-
     NFABuilder builder;
     NFA *nfa = builder.fromAST(ast);
     ASSERT_TRUE(nfa != nullptr);
     ASSERT_EQ(6, nfa->stateSet.size());
-     std::set<FASymbol> inputAlphabet = nfa->alphabet;
+    std::set<FASymbol> inputAlphabet = nfa->alphabet;
     std::set<FASymbol> testSet;
     FASymbol sa = {9, 9};
     FASymbol sb = {32, 127};
     testSet.insert(sa);
     testSet.insert(sb);
     ASSERT_EQ(testSet, inputAlphabet);
+}
+
+TEST(NFABuilderTest, rangeQuantifer)
+{
+    //a{1,2}
+    AST *ast = new AST;
+    Node *node = new Node;
+    node->leftChild = node->rightChild = nullptr;
+    node->token = {TokenType::RANGE_QUANTIFER, "1,2"};
+    ast->topNode = node;
+    ast->topNode = node;
+    ast->topNode->leftChild = new Node;
+    ast->topNode->leftChild->token = {TokenType::CHAR, "a"};
+
+    NFABuilder builder;
+    NFA *nfa = builder.fromAST(ast);
+    ASSERT_TRUE(nfa != nullptr);
+    ASSERT_EQ(6, nfa->stateSet.size());
+    FANode *n1  = nfa->stateSet[1];
+    ASSERT_EQ(2, n1->edges.size());
+    ASSERT_EQ(nfa->stateSet[3], n1->edges[0].destination);
+    ASSERT_EQ(nfa->stateSet[4], n1->edges[1].destination);
+    std::set<FASymbol> inputAlphabet = nfa->alphabet;
+    std::set<FASymbol> testSet;
+    FASymbol sa = {'a', 'a'};
+    testSet.insert(sa);
+    ASSERT_EQ(testSet, inputAlphabet);
+}
+
+TEST(NFABuilderTest, rangeQuantiferWithZeroStart)
+{
+    //a{0,2}
+    AST *ast = new AST;
+    Node *node = new Node;
+    node->leftChild = node->rightChild = nullptr;
+    node->token = {TokenType::RANGE_QUANTIFER, "0,2"};
+    ast->topNode = node;
+    ast->topNode = node;
+    ast->topNode->leftChild = new Node;
+    ast->topNode->leftChild->token = {TokenType::CHAR, "a"};
+
+    NFABuilder builder;
+    NFA *nfa = builder.fromAST(ast);
+    ASSERT_TRUE(nfa != nullptr);
+    ASSERT_EQ(6, nfa->stateSet.size());
+    
+    FANode *n2  = nfa->stateSet[2];
+    ASSERT_EQ(n2, nfa->start);
+    ASSERT_EQ(2, n2->edges.size());
+    ASSERT_EQ(nfa->stateSet[0], n2->edges[0].destination);
+    ASSERT_EQ(nfa->stateSet[3], n2->edges[1].destination);
+
+    FANode *n1  = nfa->stateSet[1];
+    ASSERT_EQ(2, n1->edges.size());
+    ASSERT_EQ(nfa->stateSet[3], n1->edges[0].destination);
+    ASSERT_EQ(nfa->stateSet[4], n1->edges[1].destination);
+    std::set<FASymbol> inputAlphabet = nfa->alphabet;
+    std::set<FASymbol> testSet;
+    FASymbol sa = {'a', 'a'};
+    testSet.insert(sa);
+    ASSERT_EQ(testSet, inputAlphabet);
+}
+
+TEST(NFABuilderTest, rangeQuantiferWithSpecifierCount)
+{
+    //a{2}
+    AST *ast = new AST;
+    Node *node = new Node;
+    node->leftChild = node->rightChild = nullptr;
+    node->token = {TokenType::RANGE_QUANTIFER, "2"};
+    ast->topNode = node;
+    ast->topNode = node;
+    ast->topNode->leftChild = new Node;
+    ast->topNode->leftChild->token = {TokenType::CHAR, "a"};
+
+    NFABuilder builder;
+    NFA *nfa = builder.fromAST(ast);
+    ASSERT_TRUE(nfa != nullptr);
+    ASSERT_EQ(6, nfa->stateSet.size());
+
+    //not connect to accept node
+    FANode *n2  = nfa->stateSet[2];
+    ASSERT_EQ(n2, nfa->start);
+    ASSERT_EQ(1, n2->edges.size());
+    ASSERT_NE(nfa->accept, n2->edges[0].destination);
+    FANode *n1  = nfa->stateSet[1];
+    ASSERT_EQ(1, n1->edges.size());
+    ASSERT_NE(nfa->accept, n1->edges[0].destination);
+}
+
+TEST(NFABuilderTest, rangeQuantiferWithoutMaxCount)
+{
+    //a{2,}
+    AST *ast = new AST;
+    Node *node = new Node;
+    node->leftChild = node->rightChild = nullptr;
+    node->token = {TokenType::RANGE_QUANTIFER, "2,"};
+    ast->topNode = node;
+    ast->topNode = node;
+    ast->topNode->leftChild = new Node;
+    ast->topNode->leftChild->token = {TokenType::CHAR, "a"};
+
+    NFABuilder builder;
+    NFA *nfa = builder.fromAST(ast);
+    ASSERT_TRUE(nfa != nullptr);
+    ASSERT_EQ(6, nfa->stateSet.size());
+
+    //not connect to accept node
+    FANode *n2  = nfa->stateSet[2];
+    ASSERT_EQ(n2, nfa->start);
+    ASSERT_EQ(1, n2->edges.size());
+    ASSERT_NE(nfa->accept, n2->edges[0].destination);
+    FANode *n1  = nfa->stateSet[1];
+    ASSERT_EQ(1, n1->edges.size());
+    ASSERT_NE(nfa->accept, n1->edges[0].destination);
+    FANode *n5  = nfa->stateSet[5];
+    ASSERT_EQ(2, n5->edges.size());
+    ASSERT_EQ(nfa->stateSet[4], n5->edges[0].destination);
+}
+
+TEST(NFABuilderTest, rangeQuantiferUnlimitedCount)
+{
+    //a{0,}
+    AST *ast = new AST;
+    Node *node = new Node;
+    node->leftChild = node->rightChild = nullptr;
+    node->token = {TokenType::RANGE_QUANTIFER, "0,"};
+    ast->topNode = node;
+    ast->topNode = node;
+    ast->topNode->leftChild = new Node;
+    ast->topNode->leftChild->token = {TokenType::CHAR, "a"};
+
+    NFABuilder builder;
+    NFA *nfa = builder.fromAST(ast);
+    ASSERT_TRUE(nfa != nullptr);
+    ASSERT_EQ(4, nfa->stateSet.size());
+
+    //not connect to accept node
+    FANode *n2  = nfa->stateSet[2];
+    ASSERT_EQ(2, n2->edges.size());
+    FANode *n1  = nfa->stateSet[1];
+    ASSERT_EQ(2, n1->edges.size());
+    ASSERT_EQ(nfa->stateSet[0], n1->edges[0].destination);
+}
+
+TEST(NFABuilderTest, rangeQuantiferWith0Count)
+{
+    //a{0}
+    AST *ast = new AST;
+    Node *node = new Node;
+    node->leftChild = node->rightChild = nullptr;
+    node->token = {TokenType::RANGE_QUANTIFER, "0"};
+    ast->topNode = node;
+    ast->topNode = node;
+    ast->topNode->leftChild = new Node;
+    ast->topNode->leftChild->token = {TokenType::CHAR, "a"};
+
+    NFABuilder builder;
+    NFA *nfa = builder.fromAST(ast);
+    ASSERT_TRUE(nfa != nullptr);
+    ASSERT_EQ(2, nfa->stateSet.size());
+    ASSERT_EQ(0, nfa->alphabet.size());
 }

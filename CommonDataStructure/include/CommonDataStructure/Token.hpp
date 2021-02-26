@@ -21,6 +21,7 @@ enum class TokenType{
     ONE_MORE,
     ZERO_OR_ONE,
     CHARACTER_RANGE,
+    RANGE_QUANTIFER,
 
     LEFT_PAREN,
     RIGHT_PAREN,

@@ -2,6 +2,8 @@
 #include <CommonDataStructure/FA.hpp>
 #include <CommonDataStructure/Token.hpp>
 #include <Compiler/NFABuilder.hpp>
+#include <map>
+#include <stdio.h>
 #include <string>
 #include <vector>
 
@@ -76,11 +78,34 @@ bool isLeaf(Node *node)
     return node->leftChild == nullptr && node->rightChild == nullptr;
 }
 
+template<typename T>
+T findKeyFromValue(std::map<T,T> &maps, T value)
+{
+    for (std::pair<T, T> pair : maps)
+    {
+        if (pair.second == value)
+        {
+            return pair.first;
+        }
+    }
+    return T();
+}
+
 struct NFABuilder::Impl
 {
     std::vector<NFA *> stack;
 
     unsigned char nextState = 0;
+
+    NFA *popFromStack()
+    {
+        if(stack.size() == 0){
+            return nullptr;
+        }
+        NFA *nfa = stack[stack.size() - 1];
+        stack.pop_back();
+        return nfa;
+    }
 
     FANode *CreateNFANode(NFA *nfa)
     {
@@ -92,6 +117,46 @@ struct NFABuilder::Impl
         node->state = nextState++;
         nfa->stateSet[node->state] = node;
         return node;
+    }
+
+    NFA *copyNFA(NFA *src)
+    {
+        if(src == nullptr){
+            return nullptr;
+        }
+        NFA *newNfa = new NFA;
+        size_t nodeCuont = src->stateSet.size();
+        std::map<FANode*, FANode*> sameStatePairs;
+        //create nodes
+        for(std::pair<FAState, FANode*> state : src->stateSet)
+        {
+            FANode *newNode = CreateNFANode(newNfa);
+            sameStatePairs[newNode] = state.second;
+        }
+        //connect nodes
+        for(std::pair<FAState, FANode*> state : newNfa->stateSet)
+        {
+            FANode *currentNode = state.second;
+            FANode *oldNode = sameStatePairs[currentNode];
+            for (size_t i = 0; i < oldNode->edges.size(); i++)
+            {
+                Edge oldEdge = oldNode->edges[i];
+                Edge newEdge;
+                newEdge.lable = oldEdge.lable;
+                FANode* oldDest = oldEdge.destination;
+                FANode* newDest = findKeyFromValue(sameStatePairs, oldDest);
+                if(newDest == nullptr){
+                    continue;
+                }
+                newEdge.destination = newDest;
+                currentNode->edges.emplace_back(newEdge);
+            }    
+        }
+        newNfa->start = findKeyFromValue(sameStatePairs, src->start);
+        newNfa->accept = findKeyFromValue(sameStatePairs, src->accept);
+        newNfa->alphabet = src->alphabet;
+
+        return newNfa;
     }
 
     void leaf(Token token)
@@ -189,10 +254,8 @@ struct NFABuilder::Impl
             nfa->start = CreateNFANode(nfa);
             nfa->accept = CreateNFANode(nfa);
 
-            NFA *nfa2 = stack[stack.size() - 1];
-            stack.pop_back();
-            NFA *nfa1 = stack[stack.size() - 1];
-            stack.pop_back();
+            NFA *nfa2 = popFromStack();
+            NFA *nfa1 = popFromStack();
 
             Edge edge1(nfa1->start, '\0');
             nfa->start->edges.push_back(edge1);
@@ -218,10 +281,8 @@ struct NFABuilder::Impl
 
         if (astNode->token.type == TokenType::CAT)
         {
-            NFA *nfa2 = stack[stack.size() - 1];
-            stack.pop_back();
-            NFA *nfa1 = stack[stack.size() - 1];
-            stack.pop_back();
+            NFA *nfa2 = popFromStack();
+            NFA *nfa1 = popFromStack();
 
             Edge edge(nfa2->start, '\0');
             nfa1->accept->edges.push_back(edge);
@@ -266,6 +327,75 @@ struct NFABuilder::Impl
 
             stack.push_back(nfa);
             return;
+        }
+
+        if(astNode->token.type == TokenType::RANGE_QUANTIFER)
+        {
+            NFA *newNfa = buildEmptyNFA();
+            NFA *oldNfa = popFromStack();
+            if(astNode->token.value.length() == 1 && astNode->token.value[0] == '0'){
+                delete oldNfa;
+                stack.push_back(newNfa);
+                return;
+            }
+            newNfa->start->edges[0].destination = oldNfa->start;;
+            newNfa->stateSet.insert(oldNfa->stateSet.begin(), oldNfa->stateSet.end());
+            newNfa->alphabet = oldNfa->alphabet;
+
+            int min, max;
+            size_t pos = astNode->token.value.find(',');
+            if(pos != std::string::npos){
+                min = atoi(astNode->token.value.substr(0, pos).c_str());
+                if(pos == astNode->token.value.length() - 1){
+                    max = -1;
+                } else{
+                    max = atoi(astNode->token.value.substr(
+                        pos + 1, astNode->token.value.length() - pos).c_str());
+                }
+            } else{
+                min = max = atoi(astNode->token.value.c_str());
+            }
+            if(max!= -1 && max < min){
+                fprintf(stderr, "%s is not vaild.\n", astNode->token.value.c_str());
+                return;
+            }
+
+            if(min == 0){
+                newNfa->start->edges.emplace_back(newNfa->accept, '\0');
+            }   
+
+            //{m,n}
+            if(max != -1){           
+                if(min <= 1){
+                    oldNfa->accept->edges.emplace_back(newNfa->accept, '\0');
+                }
+                NFA *previouslyNfa = oldNfa;
+                for (size_t i = 1; i < max; i++)
+                {
+                    NFA *copy = copyNFA(oldNfa);
+                    newNfa->stateSet.insert(copy->stateSet.begin(), copy->stateSet.end());
+                    previouslyNfa->accept->edges.emplace_back(copy->start, '\0');
+                    if(i >= min - 1){
+                        copy->accept->edges.emplace_back(newNfa->accept, '\0');
+                    }
+                    previouslyNfa = copy;
+                }
+            }
+            //{m,}
+            else
+            {
+                NFA *previouslyNfa = oldNfa;
+                for (size_t i = 1; i < min; i++)
+                {
+                    NFA *copy = copyNFA(oldNfa);
+                    newNfa->stateSet.insert(copy->stateSet.begin(), copy->stateSet.end());
+                    previouslyNfa->accept->edges.emplace_back(copy->start, '\0');
+                    previouslyNfa = copy;
+                }
+                previouslyNfa->accept->edges.emplace_back(previouslyNfa->start, '\0');
+                previouslyNfa->accept->edges.emplace_back(newNfa->accept, '\0');
+            }
+            stack.push_back(newNfa);
         }
     }
 };

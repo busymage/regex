@@ -16,7 +16,8 @@ namespace{
     {
         return TokenType::ZERO_MORE == type ||
                 TokenType::ZERO_OR_ONE == type ||
-                TokenType::ONE_MORE == type;
+                TokenType::ONE_MORE == type ||
+                TokenType::LEFT_BRACE == type;
     }
 
     Node *copyNodes(Node *node)
@@ -170,22 +171,59 @@ struct Parser::Impl{
         }
     }
 
+    Node *rangeQuantifer()
+    {
+        if(!consume(TokenType::LEFT_BRACE)){
+            return nullptr;
+        }
+        Node *node = new Node;
+        node->token.type = TokenType::RANGE_QUANTIFER;
+        while(TokenType::CHAR == currentToken.type &&
+            isdigit(currentToken.value[0]))
+        {
+            node->token.value += currentToken.value;
+            consume(TokenType::CHAR);
+        }
+        if (TokenType::COMMA == currentToken.type &&
+            ',' == currentToken.value[0])
+        {
+            node->token.value += ',';
+            consume(TokenType::COMMA);
+            while(TokenType::CHAR == currentToken.type &&
+                isdigit(currentToken.value[0]))
+            {
+                node->token.value += currentToken.value;
+                consume(TokenType::CHAR);
+            }
+        }
+        if(!consume(TokenType::RIGHT_BRACE)){
+            return nullptr;
+        }
+        return node;
+    }
+
     Node *quantifier()
     {
+        if(TokenType::LEFT_BRACE == currentToken.type){
+            return rangeQuantifer();
+        }
         return CreateNodeForCurrentToken();
     }
 
     Node *match()
     {
         Node *item = matchItem();
-        if(TokenType::ONE_MORE == currentToken.type){
-            return oneMore(item);
-        }
-        if(TokenType::ZERO_MORE == currentToken.type ||
-            TokenType::ZERO_OR_ONE == currentToken.type){
-            Node *quan = quantifier();
-            quan->leftChild = item;
-            return quan;
+        if(isQuantifierType(currentToken.type)){
+            if(TokenType::ONE_MORE == currentToken.type){
+                return oneMore(item);
+            }else{
+                Node *quan = quantifier();
+                if(nullptr == quan){
+                    return nullptr;
+                }
+                quan->leftChild = item;
+                return quan;
+            }
         }
         return item;
     }
@@ -232,6 +270,9 @@ struct Parser::Impl{
                 TokenType::RIGHT_PAREN != currentToken.type
                 ){
             Node *item = subExpressionItem();
+            if(item == nullptr){
+                return nullptr;
+            }
             if(subExpression != nullptr){
                 Node *cat = new Node;
                 cat->token = {TokenType::CAT, ""};
@@ -281,8 +322,11 @@ AST *Parser::parse()
     if(TokenType::END == impl_->currentToken.type){
         return nullptr;
     }
-    AST *tree = new AST;
     Node *expression = impl_->expression();
+    if(expression == nullptr){
+        return nullptr;
+    }
+    AST *tree = new AST;
     tree->topNode = expression;
     return tree;
 }

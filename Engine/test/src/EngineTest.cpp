@@ -144,3 +144,32 @@ TEST(EngineTest, accpetCharGroup)
     ASSERT_FALSE(e.accept("(\\D)+"));
     ASSERT_FALSE(e.accept("a-z+"));
 }
+
+TEST(EngineTest, accpetRangeQuantifer)
+{
+    {
+        Engine e("[\\da-z]{1,3}");
+        ASSERT_TRUE(e.accept("az9"));
+        ASSERT_FALSE(e.accept("az9d"));	
+        ASSERT_FALSE(e.accept("a{1,3}"));
+    }
+    {
+        Engine e("[\\da-z]{3,}");
+        ASSERT_TRUE(e.accept("az9"));
+        ASSERT_TRUE(e.accept("az999"));
+        ASSERT_FALSE(e.accept("az"));	
+        ASSERT_FALSE(e.accept("a{1,3}"));
+    }
+    {
+        Engine e("[\\da-z]{0}");
+        ASSERT_TRUE(e.accept(""));
+        ASSERT_FALSE(e.accept("az9"));
+        ASSERT_FALSE(e.accept("az999"));
+    }
+    {
+        Engine e("[\\da-z]{1}");
+        ASSERT_TRUE(e.accept("a"));
+        ASSERT_TRUE(e.accept("9"));
+        ASSERT_FALSE(e.accept("az"));
+    }
+}
