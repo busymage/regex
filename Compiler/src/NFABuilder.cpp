@@ -1,5 +1,5 @@
-#include <CommonDataStructure/AST.hpp>
-#include <CommonDataStructure/FA.hpp>
+#include <Parser/AST.hpp>
+#include <Compiler/FA.hpp>
 #include <CommonDataStructure/Token.hpp>
 #include <Compiler/NFABuilder.hpp>
 #include <map>
@@ -34,36 +34,31 @@ FASymbol AnyCharButNewLIneSymbol[] = {
     {32,127}
 };
 
-Node *constructTreeWithRangeCharacter(char lower, char higher)
+ASTNode*constructTreeWithRangeCharacter(char lower, char upper)
 {
-    Node *node = new Node;
-    node->token.type = TokenType::CHARACTER_RANGE;
-    node->token.value = "-";
-    node->leftChild = new Node;
-    node->leftChild->token.type = TokenType ::CHAR;
-    node->leftChild->token.value = {lower};
-    node->rightChild = new Node;
-    node->rightChild->token.type = TokenType::CHAR;
-    node->rightChild->token.value = {higher};
+    std::string lowerStr(1, lower);
+    std::string upperStr(1, upper);
+    ASTNode*node = new ASTNode((Token){TokenType::CHARACTER_RANGE,  "-"});
+    node->leftChild = new ASTNode((Token){TokenType::CHAR,  lowerStr});
+    node->rightChild = new ASTNode((Token){TokenType::CHAR,  upperStr});
     return node;
 }
 
-AST *constructAstFromSymbols(FASymbol *symbols, size_t num)
+std::shared_ptr<AST>constructAstFromSymbols(FASymbol *symbols, size_t num)
 {
     if(symbols == nullptr){
         return nullptr;
     }
-    AST *ast = new AST;
+    std::shared_ptr<AST>ast = std::make_shared<AST>();
     for (size_t i = 0; i < num; i++)
     {
         if(i > 0){
-            Node *oldTopNode = ast->topNode;
-            ast->topNode = new Node;
-            ast->topNode->token = {TokenType::OR, "|"};
+            ASTNode*oldTopNode = ast->topNode;
+            ast->topNode = new ASTNode({TokenType::OR, "|"});
             ast->topNode->leftChild = oldTopNode;
         }
         FASymbol symbol = symbols[i];
-        Node *range = constructTreeWithRangeCharacter(symbol.lowerBound, symbol.upperBound);
+        ASTNode*range = constructTreeWithRangeCharacter(symbol.lowerBound, symbol.upperBound);
         if(ast->topNode == nullptr){
             ast->topNode = range;
         }else{
@@ -73,7 +68,7 @@ AST *constructAstFromSymbols(FASymbol *symbols, size_t num)
     return ast;
 }
 
-bool isLeaf(Node *node)
+bool isLeaf(ASTNode*node)
 {
     return node->leftChild == nullptr && node->rightChild == nullptr;
 }
@@ -93,21 +88,21 @@ T findKeyFromValue(std::map<T,T> &maps, T value)
 
 struct NFABuilder::Impl
 {
-    std::vector<NFA *> stack;
+    std::vector<std::shared_ptr<NFA> > stack;
 
     unsigned char nextState = 0;
 
-    NFA *popFromStack()
+    std::shared_ptr<NFA> popFromStack()
     {
         if(stack.size() == 0){
             return nullptr;
         }
-        NFA *nfa = stack[stack.size() - 1];
+        std::shared_ptr<NFA> nfa = stack[stack.size() - 1];
         stack.pop_back();
         return nfa;
     }
 
-    FANode *CreateNFANode(NFA *nfa)
+    FANode *CreateNFANode(std::shared_ptr<NFA> nfa)
     {
         FANode *node = new FANode;
         if (node == nullptr)
@@ -119,12 +114,12 @@ struct NFABuilder::Impl
         return node;
     }
 
-    NFA *copyNFA(NFA *src)
+    std::shared_ptr<NFA> copyNFA(std::shared_ptr<NFA> src)
     {
         if(src == nullptr){
             return nullptr;
         }
-        NFA *newNfa = new NFA;
+        std::shared_ptr<NFA> newNfa = std::make_shared<NFA>();
         size_t nodeCuont = src->stateSet.size();
         std::map<FANode*, FANode*> sameStatePairs;
         //create nodes
@@ -162,23 +157,23 @@ struct NFABuilder::Impl
     void leaf(Token token)
     {
         if(token.type == TokenType::ANY_SINGLE_NOT_DIGIT){
-            AST *ast = constructAstFromSymbols(nonDigitalSymbol, sizeof(nonDigitalSymbol)/ sizeof(FASymbol));
+            std::shared_ptr<AST>ast = constructAstFromSymbols(nonDigitalSymbol, sizeof(nonDigitalSymbol)/ sizeof(FASymbol));
             BuildNFA(ast->topNode);
             return;
         } else if(token.type == TokenType::ANY_SINGLE_WORD){
-            AST *ast = constructAstFromSymbols(wordSymbol, sizeof(wordSymbol)/ sizeof(FASymbol));
+            std::shared_ptr<AST>ast = constructAstFromSymbols(wordSymbol, sizeof(wordSymbol)/ sizeof(FASymbol));
             BuildNFA(ast->topNode);
             return;
         } else if(token.type == TokenType::ANY_SINGLE_NOT_WORD){
-            AST *ast = constructAstFromSymbols(notWordSymbol, sizeof(notWordSymbol)/ sizeof(FASymbol));
+            std::shared_ptr<AST>ast = constructAstFromSymbols(notWordSymbol, sizeof(notWordSymbol)/ sizeof(FASymbol));
             BuildNFA(ast->topNode);
             return;
         } else if(token.type == TokenType::ANY_SIGLE_CHAR_EXCEPT_NEWLINE){
-            AST *ast = constructAstFromSymbols(AnyCharButNewLIneSymbol, sizeof(AnyCharButNewLIneSymbol)/ sizeof(FASymbol));
+            std::shared_ptr<AST>ast = constructAstFromSymbols(AnyCharButNewLIneSymbol, sizeof(AnyCharButNewLIneSymbol)/ sizeof(FASymbol));
             BuildNFA(ast->topNode);
             return;
         }
-        NFA *nfa = new NFA;
+        std::shared_ptr<NFA> nfa = std::make_shared<NFA>();
         nfa->start = CreateNFANode(nfa);
         nfa->accept = CreateNFANode(nfa);
         FASymbol symbol;
@@ -196,7 +191,7 @@ struct NFABuilder::Impl
 
     void star()
     {
-        NFA *nfa = stack[stack.size() - 1];
+        std::shared_ptr<NFA> nfa = stack[stack.size() - 1];
         stack.pop_back();
 
         FANode *start = CreateNFANode(nfa);
@@ -214,9 +209,9 @@ struct NFABuilder::Impl
         stack.push_back(nfa);
     }
 
-    NFA *buildEmptyNFA()
+    std::shared_ptr<NFA> buildEmptyNFA()
     {
-        NFA *nfa = new NFA;
+        std::shared_ptr<NFA> nfa = std::make_shared<NFA>();
         nfa->start = CreateNFANode(nfa);
         nfa->accept = CreateNFANode(nfa);
 
@@ -225,10 +220,10 @@ struct NFABuilder::Impl
         return nfa;
     }
 
-    void BuildNFA(Node *astNode)
+    void BuildNFA(ASTNode*astNode)
     {
         if(astNode->token.type == TokenType::CHARACTER_RANGE){
-            NFA *nfa = buildEmptyNFA();
+            std::shared_ptr<NFA> nfa = buildEmptyNFA();
             nfa->start->edges[0].lable = {astNode->leftChild->token.value[0], astNode->rightChild->token.value[0]};
             nfa->alphabet.insert(nfa->start->edges[0].lable);
             stack.push_back(nfa);
@@ -250,12 +245,12 @@ struct NFABuilder::Impl
         }
         if (astNode->token.type == TokenType::OR)
         {
-            NFA *nfa = new NFA;
+            std::shared_ptr<NFA> nfa = std::make_shared<NFA>();
             nfa->start = CreateNFANode(nfa);
             nfa->accept = CreateNFANode(nfa);
 
-            NFA *nfa2 = popFromStack();
-            NFA *nfa1 = popFromStack();
+            std::shared_ptr<NFA> nfa2 = popFromStack();
+            std::shared_ptr<NFA> nfa1 = popFromStack();
 
             Edge edge1(nfa1->start, '\0');
             nfa->start->edges.push_back(edge1);
@@ -273,23 +268,24 @@ struct NFABuilder::Impl
             nfa->stateSet.insert(nfa1->stateSet.begin(), nfa1->stateSet.end());
             nfa->stateSet.insert(nfa2->stateSet.begin(), nfa2->stateSet.end());
 
-            delete nfa1;
-            delete nfa2;
+            nfa1->stateSet.clear();
+            nfa2->stateSet.clear();
             stack.push_back(nfa);
             return;
         }
 
         if (astNode->token.type == TokenType::CAT)
         {
-            NFA *nfa2 = popFromStack();
-            NFA *nfa1 = popFromStack();
+            std::shared_ptr<NFA> nfa2 = popFromStack();
+            std::shared_ptr<NFA> nfa1 = popFromStack();
 
             Edge edge(nfa2->start, '\0');
             nfa1->accept->edges.push_back(edge);
             nfa1->accept = nfa2->accept;
             nfa1->alphabet.insert(nfa2->alphabet.begin(), nfa2->alphabet.end());
             nfa1->stateSet.insert(nfa2->stateSet.begin(), nfa2->stateSet.end());
-            delete nfa2;
+
+            nfa2->stateSet.clear();
             stack.push_back(nfa1);
             return;
         }
@@ -302,7 +298,7 @@ struct NFABuilder::Impl
 
         if (astNode->token.type == TokenType::ZERO_OR_ONE)
         {
-            NFA *nfa = stack[stack.size() - 1];
+            std::shared_ptr<NFA> nfa = stack[stack.size() - 1];
             stack.pop_back();
             //create four node
             FANode *n0 = CreateNFANode(nfa);
@@ -331,10 +327,9 @@ struct NFABuilder::Impl
 
         if(astNode->token.type == TokenType::RANGE_QUANTIFER)
         {
-            NFA *newNfa = buildEmptyNFA();
-            NFA *oldNfa = popFromStack();
+            std::shared_ptr<NFA> newNfa = buildEmptyNFA();
+            std::shared_ptr<NFA> oldNfa = popFromStack();
             if(astNode->token.value.length() == 1 && astNode->token.value[0] == '0'){
-                delete oldNfa;
                 stack.push_back(newNfa);
                 return;
             }
@@ -369,31 +364,35 @@ struct NFABuilder::Impl
                 if(min <= 1){
                     oldNfa->accept->edges.emplace_back(newNfa->accept, '\0');
                 }
-                NFA *previouslyNfa = oldNfa;
+                std::shared_ptr<NFA> previouslyNfa = oldNfa;
                 for (size_t i = 1; i < max; i++)
                 {
-                    NFA *copy = copyNFA(oldNfa);
+                    std::shared_ptr<NFA> copy = copyNFA(previouslyNfa);
                     newNfa->stateSet.insert(copy->stateSet.begin(), copy->stateSet.end());
                     previouslyNfa->accept->edges.emplace_back(copy->start, '\0');
                     if(i >= min - 1){
                         copy->accept->edges.emplace_back(newNfa->accept, '\0');
                     }
+                    previouslyNfa->stateSet.clear();
                     previouslyNfa = copy;
                 }
+                previouslyNfa->stateSet.clear();
             }
             //{m,}
             else
             {
-                NFA *previouslyNfa = oldNfa;
+                std::shared_ptr<NFA> previouslyNfa = oldNfa;
                 for (size_t i = 1; i < min; i++)
                 {
-                    NFA *copy = copyNFA(oldNfa);
+                    std::shared_ptr<NFA> copy = copyNFA(previouslyNfa);
                     newNfa->stateSet.insert(copy->stateSet.begin(), copy->stateSet.end());
                     previouslyNfa->accept->edges.emplace_back(copy->start, '\0');
+                    previouslyNfa->stateSet.clear();
                     previouslyNfa = copy;
                 }
                 previouslyNfa->accept->edges.emplace_back(previouslyNfa->start, '\0');
                 previouslyNfa->accept->edges.emplace_back(newNfa->accept, '\0');
+                previouslyNfa->stateSet.clear();
             }
             stack.push_back(newNfa);
         }
@@ -407,7 +406,7 @@ NFABuilder::NFABuilder()
 
 NFABuilder::~NFABuilder() = default;
 
-NFA *NFABuilder::fromAST(AST *ast)
+std::shared_ptr<NFA> NFABuilder::fromAST(std::shared_ptr<AST>ast)
 {
     if (ast == nullptr){
         return impl_->buildEmptyNFA();

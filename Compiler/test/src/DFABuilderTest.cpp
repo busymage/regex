@@ -1,4 +1,4 @@
-#include <CommonDataStructure/FA.hpp>
+#include <Compiler/FA.hpp>
 #include <Compiler/DFABuilder.hpp>
 #include <gtest/gtest.h>
 #include <set>
@@ -8,13 +8,14 @@
 TEST(DFABuilderTest, epsilonClosure)
 {
     // (a|b)*baa
-    NFA *nfa = new NFA;
+    std::shared_ptr<NFA> nfa = std::make_shared<NFA>();
     std::vector<FANode*> nfaNodes;
     for (size_t i = 0; i < 14; i++)
     {
         FANode *n = new FANode;
         n->state = i;
         nfaNodes.push_back(n);
+        nfa->stateSet[i] = n;
     }
     FANode *n0 = nfaNodes[0];
     FANode *n1 = nfaNodes[1];
@@ -81,7 +82,7 @@ TEST(DFABuilderTest, emptyInputForEpsilonClosure)
 TEST(DFABuilderTest, move)
 {
     // (a|b)*baa
-    NFA *nfa = new NFA;
+    std::shared_ptr<NFA> nfa = std::make_shared<NFA>();
     std::vector<FANode*> nfaNodes;
     for (size_t i = 0; i < 14; i++)
     {
@@ -160,7 +161,7 @@ TEST(DFABuilderTest, move)
 TEST(DFABuilderTest, epsilonClosureWithSet)
 {
     // (a|b)*baa
-    NFA *nfa = new NFA;
+    std::shared_ptr<NFA> nfa = std::make_shared<NFA>();
     std::vector<FANode*> nfaNodes;
     for (size_t i = 0; i < 14; i++)
     {
@@ -239,7 +240,7 @@ TEST(DFABuilderTest, epsilonClosureWithSet)
 TEST(DFABuilderTest, build)
 {
       // (a|b)*baa
-    NFA *nfa = new NFA;
+    std::shared_ptr<NFA> nfa = std::make_shared<NFA>();
     std::vector<FANode*> nfaNodes;
     for (size_t i = 0; i < 14; i++)
     {
@@ -304,7 +305,7 @@ TEST(DFABuilderTest, build)
     }
 
     DFABuilder builder(nfa);
-    DFA *dfa = builder.build();
+    std::shared_ptr<DFA>  dfa = builder.build();
     ASSERT_EQ('A', dfa->start->state);
     ASSERT_EQ('E', dfa->accept->state);
     ASSERT_EQ(5, dfa->stateSet.size());
@@ -354,7 +355,7 @@ TEST(DFABuilderTest, build)
 TEST(DFABuilderTest, buildMultipleTimeGetSameDfa)
 {
       // (a|b)*baa
-    NFA *nfa = new NFA;
+    std::shared_ptr<NFA> nfa = std::make_shared<NFA>();
     std::vector<FANode*> nfaNodes;
     for (size_t i = 0; i < 14; i++)
     {
@@ -419,9 +420,9 @@ TEST(DFABuilderTest, buildMultipleTimeGetSameDfa)
     }
 
     DFABuilder builder(nfa);
-    DFA *dfa1 = builder.build();
-    DFA *dfa2 = builder.build();
-    DFA *dfa3 = builder.build();
+    std::shared_ptr<DFA>  dfa1 = builder.build();
+    std::shared_ptr<DFA>  dfa2 = builder.build();
+    std::shared_ptr<DFA>  dfa3 = builder.build();
     ASSERT_EQ(5, dfa1->stateSet.size());
     ASSERT_EQ(5, dfa2->stateSet.size());
     ASSERT_EQ(5, dfa3->stateSet.size());
@@ -430,9 +431,9 @@ TEST(DFABuilderTest, buildMultipleTimeGetSameDfa)
 TEST(DFABuilderTest, buildaStar)
 {
     //a*
-    NFA *nfa = new NFA;
+    std::shared_ptr<NFA> nfa = std::make_shared<NFA>();
     std::vector<FANode*> nfaNodes;
-    for (size_t i = 0; i < 4; i++)
+    for (size_t i = 0; i < 8; i++)
     {
         FANode *n = new FANode;
         n->state = i;
@@ -461,7 +462,7 @@ TEST(DFABuilderTest, buildaStar)
     }
 
     DFABuilder builder(nfa);
-    DFA *dfa1 = builder.build();
+    std::shared_ptr<DFA>  dfa1 = builder.build();
     ASSERT_NE(dfa1, nullptr);
     ASSERT_EQ(dfa1->stateSet.size(), 2);
     FANode *na = dfa1->stateSet['A'];
@@ -481,7 +482,7 @@ TEST(DFABuilderTest, buildaStar)
 TEST(DFABuilderTest, buildaOrbStar)
 {
     //(a|b)*
-    NFA *nfa = new NFA;
+    std::shared_ptr<NFA> nfa = std::make_shared<NFA>();
     std::vector<FANode*> nfaNodes;
     for (size_t i = 0; i < 8; i++)
     {
@@ -520,7 +521,7 @@ TEST(DFABuilderTest, buildaOrbStar)
     }
 
     DFABuilder builder(nfa);
-    DFA *dfa1 = builder.build();
+    std::shared_ptr<DFA>  dfa1 = builder.build();
     ASSERT_NE(dfa1, nullptr);
     ASSERT_EQ(dfa1->stateSet.size(), 3);
     FANode *na = dfa1->stateSet['A'];
@@ -552,7 +553,7 @@ TEST(DFABuilderTest, buildaOrbStar)
 TEST(DFABuilderTest, buildaQustionMark)
 {
    //a?
-    NFA *nfa = new NFA;
+    std::shared_ptr<NFA> nfa = std::make_shared<NFA>();
     std::vector<FANode*> nfaNodes;
     for (size_t i = 0; i < 6; i++)
     {
@@ -586,7 +587,7 @@ TEST(DFABuilderTest, buildaQustionMark)
     nfa->alphabet.insert(symbola);
 
     DFABuilder builder(nfa);
-    DFA *dfa1 = builder.build();
+    std::shared_ptr<DFA>  dfa1 = builder.build();
     ASSERT_NE(dfa1, nullptr);
     ASSERT_EQ(dfa1->stateSet.size(), 2);
     FANode *na = dfa1->stateSet['A'];

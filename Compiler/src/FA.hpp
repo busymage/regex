@@ -66,12 +66,32 @@ struct NFA{
     std::map<unsigned char, FANode*> stateSet;
     FANode *start;
     FANode *accept; 
+
+    ~NFA()
+    {
+        for (auto state : stateSet)
+        {
+            delete state.second;
+        }
+        stateSet.clear();
+        start = accept = nullptr;
+    }
 };
 
-struct DFA{
+struct DFA  {
     std::map<unsigned char, FANode*> stateSet;
     FANode *start;
     FANode *accept; 
+
+    ~DFA  ()
+    {
+        for (auto state : stateSet)
+        {
+            delete state.second;
+        }
+        stateSet.clear();
+        start = accept = nullptr;
+    }
 };
 
 #endif

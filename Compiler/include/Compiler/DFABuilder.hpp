@@ -4,17 +4,17 @@
 #include <memory>
 #include <set>
 
-struct DFA;
+struct DFA  ;
 struct NFA;
 struct FANode;
 
 class DFABuilder{
     public:
-    DFABuilder(NFA *nfa);
+    DFABuilder(std::shared_ptr<NFA> nfa);
 
     ~DFABuilder();
 
-    DFA *build();
+    std::shared_ptr<DFA> build();
 
     std::set<unsigned char> epsilonClosure(FANode *node);
 

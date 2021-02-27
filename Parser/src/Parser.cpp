@@ -1,17 +1,9 @@
 #include <memory>
-#include <CommonDataStructure/AST.hpp>
+#include <Parser/AST.hpp>
 #include <Parser/Parser.hpp>
 #include <Scanner/Scanner.hpp>
 
 namespace{
-    Node *createNode(Token &token)
-    {
-        Node *node = new Node;
-        node->token = token;
-        node->leftChild = node->rightChild = nullptr;
-        return node;
-    }
-
     bool isQuantifierType(TokenType type)
     {
         return TokenType::ZERO_MORE == type ||
@@ -20,10 +12,9 @@ namespace{
                 TokenType::LEFT_BRACE == type;
     }
 
-    Node *copyNodes(Node *node)
+    ASTNode*copyNodes(ASTNode*node)
     {
-       Node *topNode = new Node;
-       topNode->token = node->token;
+       ASTNode*topNode = new ASTNode(node->token);
         if(node->leftChild != nullptr){
             topNode->leftChild = copyNodes(node->leftChild);
         }
@@ -33,24 +24,33 @@ namespace{
         return topNode;
     }
 
+    void cleanNodes(ASTNode *node)
+    {
+        AST ast;
+        ast.topNode = node;
+    }
+
 };
 
 struct Parser::Impl{
+
+    //properties
     std::unique_ptr<Scanner> scanner;
 
     Token currentToken;
 
-    Node *oneMore(Node *src)
+    std::shared_ptr<AST> astCache;
+
+    //methods
+    ASTNode*oneMore(ASTNode*src)
     {
-        Node *cat = new Node;
-        cat->token = {TokenType::CAT, ""};
+        Token catToken = {TokenType::CAT, ""};
+        ASTNode*cat = new ASTNode(catToken);
         cat->leftChild = src;
         //*
-        Token token;
-        token.type = TokenType::ZERO_MORE;
-        token.value = "*";
-        cat->rightChild = createNode(token);
-        Node *srcCopy = copyNodes(src);
+        Token startoken = {TokenType::ZERO_MORE, "*"};
+        cat->rightChild = new ASTNode(startoken);
+        ASTNode*srcCopy = copyNodes(src);
         cat->rightChild->leftChild = srcCopy;
         consume(TokenType::ONE_MORE);
         return cat;
@@ -65,40 +65,40 @@ struct Parser::Impl{
         return true;
     }
 
-    Node *CreateNodeForCurrentToken()
+    ASTNode*CreateNodeForCurrentToken()
     {
-        Node *node = createNode(currentToken);
+        ASTNode*node = new ASTNode(currentToken);
         currentToken = scanner->getNextToken();
         return node;
     }
 
-    Node *characterClass()
+    ASTNode*characterClass()
     {
         return CreateNodeForCurrentToken();
     }
 
-    Node *matchCharacter()
+    ASTNode*matchCharacter()
     {
-        Node *character = CreateNodeForCurrentToken();
+        ASTNode*character = CreateNodeForCurrentToken();
         character->token.type = TokenType::CHAR;
         return character;
     }
 
-    Node *CharacterRange()
+    ASTNode*CharacterRange()
     {
-        Node *range = nullptr;
-        Node *start = matchCharacter();
+        ASTNode*range = nullptr;
+        ASTNode*start = matchCharacter();
         range = start;
         if(TokenType::CHARACTER_RANGE == currentToken.type){
             range = CreateNodeForCurrentToken();
-            Node *end = matchCharacter();
+            ASTNode*end = matchCharacter();
             range->leftChild = start;
             range->rightChild = end;
         }
         return range;
     }
 
-    Node *characterGroupItem()
+    ASTNode*characterGroupItem()
     {
         switch (currentToken.type)
         {
@@ -116,9 +116,9 @@ struct Parser::Impl{
         return nullptr;
     }
 
-    Node *characterGroup()
+    ASTNode*characterGroup()
     {
-        Node *group = nullptr;
+        ASTNode*group = nullptr;
         if(!consume(TokenType::LEFT_BRACKET)){
             return nullptr;
         }
@@ -129,12 +129,12 @@ struct Parser::Impl{
         while (TokenType::RIGHT_BRACKET != currentToken.type &&
                 TokenType::END != currentToken.type)
         {
-            Node *groupItem = characterGroupItem();
+            ASTNode*groupItem = characterGroupItem();
             if(nullptr == group){
                 group = groupItem;
             }else{
-                Node *cat = new Node;
-                cat->token = {TokenType::OR, "|"};
+                Token token = {TokenType::OR, "|"};
+                ASTNode*cat = new ASTNode(token);
                 cat->leftChild = group;
                 cat->rightChild = groupItem;
 
@@ -143,12 +143,14 @@ struct Parser::Impl{
         }
         
         if(!consume(TokenType::RIGHT_BRACKET)){
-                abort();
-            }
+            astCache->errorMsg = "Expect ']";
+            cleanNodes(group);
+            return nullptr;
+        }
         return group;
     }
 
-    Node *matchCharacterClass()
+    ASTNode*matchCharacterClass()
     {
         if(TokenType::LEFT_BRACKET == currentToken.type){
             return  characterGroup();
@@ -156,7 +158,7 @@ struct Parser::Impl{
         return characterClass();
     }
 
-    Node *matchItem()
+    ASTNode*matchItem()
     {
         if(TokenType::LEFT_BRACKET == currentToken.type ||
             TokenType::ANY_SINGLE_NOT_DIGIT == currentToken.type ||
@@ -171,13 +173,13 @@ struct Parser::Impl{
         }
     }
 
-    Node *rangeQuantifer()
+    ASTNode*rangeQuantifer()
     {
         if(!consume(TokenType::LEFT_BRACE)){
             return nullptr;
         }
-        Node *node = new Node;
-        node->token.type = TokenType::RANGE_QUANTIFER;
+        Token token = {TokenType::RANGE_QUANTIFER, ""};
+        ASTNode*node = new ASTNode(token);
         while(TokenType::CHAR == currentToken.type &&
             isdigit(currentToken.value[0]))
         {
@@ -197,12 +199,14 @@ struct Parser::Impl{
             }
         }
         if(!consume(TokenType::RIGHT_BRACE)){
+            astCache->errorMsg = "Expect '}";
+            cleanNodes(node);
             return nullptr;
         }
         return node;
     }
 
-    Node *quantifier()
+    ASTNode*quantifier()
     {
         if(TokenType::LEFT_BRACE == currentToken.type){
             return rangeQuantifer();
@@ -210,15 +214,16 @@ struct Parser::Impl{
         return CreateNodeForCurrentToken();
     }
 
-    Node *match()
+    ASTNode*match()
     {
-        Node *item = matchItem();
+        ASTNode*item = matchItem();
         if(isQuantifierType(currentToken.type)){
             if(TokenType::ONE_MORE == currentToken.type){
                 return oneMore(item);
             }else{
-                Node *quan = quantifier();
+                ASTNode*quan = quantifier();
                 if(nullptr == quan){
+                    cleanNodes(item);
                     return nullptr;
                 }
                 quan->leftChild = item;
@@ -228,14 +233,16 @@ struct Parser::Impl{
         return item;
     }
 
-    Node *group()
+    ASTNode*group()
     {
-        Node *group = nullptr;
+        ASTNode*group = nullptr;
         if(!consume(TokenType::LEFT_PAREN)){
             return nullptr;
         }
-        Node *expr = expression();
+        ASTNode*expr = expression();
         if(!consume(TokenType::RIGHT_PAREN)){
+            astCache->errorMsg = "Expect ')";
+            cleanNodes(expr);
             return nullptr;
         }
         if(isQuantifierType(currentToken.type)){
@@ -254,7 +261,7 @@ struct Parser::Impl{
         return group;
     }
 
-    Node *subExpressionItem()
+    ASTNode*subExpressionItem()
     {
         if(TokenType::LEFT_PAREN == currentToken.type){
             return group();
@@ -262,20 +269,20 @@ struct Parser::Impl{
         return match();
     }
 
-    Node *subExpression()
+    ASTNode*subExpression()
     {
-        Node *subExpression = nullptr;
+        ASTNode*subExpression = nullptr;
         while (TokenType::END != currentToken.type &&
                 TokenType::OR != currentToken.type &&
                 TokenType::RIGHT_PAREN != currentToken.type
                 ){
-            Node *item = subExpressionItem();
+            ASTNode*item = subExpressionItem();
             if(item == nullptr){
+                cleanNodes(subExpression);
                 return nullptr;
             }
             if(subExpression != nullptr){
-                Node *cat = new Node;
-                cat->token = {TokenType::CAT, ""};
+                ASTNode*cat = new ASTNode({TokenType::CAT, ""});
                 cat->leftChild = subExpression;
                 cat->rightChild = item;
 
@@ -287,23 +294,28 @@ struct Parser::Impl{
         return subExpression;
     }
 
-    Node *expression()
+    ASTNode*expression()
     {
-        Node *expression = nullptr;
-        if(TokenType::STRING_START_ANCHOR == currentToken.type){
+        ASTNode *expression = nullptr;
+        if (TokenType::STRING_START_ANCHOR == currentToken.type)
+        {
             //TODO
             currentToken = scanner->getNextToken();
         }
-        do{
-            if(expression != nullptr){
-                Node *un = CreateNodeForCurrentToken();
+        do
+        {
+            if (expression != nullptr)
+            {
+                ASTNode *un = CreateNodeForCurrentToken();
                 un->leftChild = expression;
                 un->rightChild = subExpression();
                 expression = un;
-            } else{
+            }
+            else
+            {
                 expression = subExpression();
             }
-        }while(TokenType::OR == currentToken.type);
+        } while (TokenType::OR == currentToken.type);
         return expression;
     }
 };
@@ -316,17 +328,21 @@ Parser::Parser(const std::string &input)
 
 Parser::~Parser() = default;
 
-AST *Parser::parse()
+std::shared_ptr<AST> Parser::parse()
 {
+    if(impl_->astCache != nullptr){
+        return impl_->astCache;
+    }
+    impl_->astCache = std::make_shared<AST>();
     impl_->currentToken = impl_->scanner->getNextToken();
-    if(TokenType::END == impl_->currentToken.type){
+    if (TokenType::END == impl_->currentToken.type)
+    {
         return nullptr;
     }
-    Node *expression = impl_->expression();
-    if(expression == nullptr){
-        return nullptr;
+    ASTNode*expression = impl_->expression();
+    if(expression != nullptr){
+        impl_->astCache->isVaild = true;
     }
-    AST *tree = new AST;
-    tree->topNode = expression;
-    return tree;
+    impl_->astCache->topNode = expression;
+    return impl_->astCache;
 }

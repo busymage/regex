@@ -1,7 +1,8 @@
 #include <assert.h>
-#include <CommonDataStructure/FA.hpp>
+#include <Compiler/FA.hpp>
 #include <Compiler/DFABuilder.hpp>
 #include <map>
+#include <memory>
 #include <set>
 #include <vector>
 
@@ -10,20 +11,29 @@ struct DFABuilder::Impl
     
     struct NodeInfo{
         FANode *fanode;
-        unsigned char dfaState;
-        std::set<unsigned char> nfaState;
+        FAState dfaState;
+        std::set<FAState> nfaState;
         bool isMark = false;
+
+        ~NodeInfo()
+        {
+            fanode = nullptr;
+        }
     };
 
     struct Temp{
-        unsigned char nextState = 'A';
-        std::vector<NodeInfo> states;
+        FAState nextState = 'A';
+        std::vector<std::shared_ptr<NodeInfo>> states;
+
+        ~Temp()
+        { 
+        }
     };
 
-    NFA *nfa;
-    Temp *temp = nullptr;
+    std::shared_ptr<NFA> nfa;
+    std::shared_ptr<Temp> temp;
 
-    FANode *CreateDFANode(DFA *dfa)
+    FANode *CreateDFANode(std::shared_ptr<DFA>  dfa)
     {
         if(temp == nullptr){
             return nullptr;
@@ -43,9 +53,9 @@ struct DFABuilder::Impl
         if(temp == nullptr){
             return false;
         }
-        for (NodeInfo info : temp->states)
+        for (auto info : temp->states)
         {
-            if(info.nfaState == nfaState){
+            if(info->nfaState == nfaState){
                 return true;
             }
         }
@@ -54,10 +64,10 @@ struct DFABuilder::Impl
 
     FANode *findNodeByStateSet(std::set<unsigned char> &nfaState)
     {
-        for (NodeInfo &info : temp->states)
+        for (auto info : temp->states)
         {
-            if(info.nfaState == nfaState){
-                return info.fanode;
+            if(info->nfaState == nfaState){
+                return info->fanode;
             }
         }
         return nullptr;  
@@ -71,10 +81,10 @@ struct DFABuilder::Impl
         if(node == nullptr){
             return;
         }
-        NodeInfo info;
-        info.fanode = node;
-        info.dfaState = node->state;
-        info.nfaState = nfaState;
+        auto info = std::make_shared<NodeInfo>();
+        info->fanode = node;
+        info->dfaState = node->state;
+        info->nfaState = nfaState;
         temp->states.push_back(info);
     }
 
@@ -94,7 +104,7 @@ struct DFABuilder::Impl
     }
 };
 
-DFABuilder::DFABuilder(NFA *nfa)
+DFABuilder::DFABuilder(std::shared_ptr<NFA> nfa)
     : impl_(new Impl)
 {
     if(nfa == nullptr){
@@ -105,14 +115,14 @@ DFABuilder::DFABuilder(NFA *nfa)
 
 DFABuilder::~DFABuilder() = default;
 
-DFA *DFABuilder::build()
+std::shared_ptr<DFA>  DFABuilder::build()
 {
     if(impl_->temp != nullptr){
-        delete impl_->temp;
+        impl_->temp.reset();
     }
-    impl_->temp = new Impl::Temp;
+    impl_->temp = std::make_shared<Impl::Temp>();
 
-    DFA *dfa = new DFA;
+    std::shared_ptr<DFA>  dfa = std::make_shared<DFA>();
     if(dfa == nullptr){
         return nullptr;
     }
@@ -126,16 +136,17 @@ DFA *DFABuilder::build()
 
     while(true){
         unsigned char markcount = 0;
-        for (Impl::NodeInfo &nodeInfo : impl_->temp->states)
+        auto tempState = impl_->temp->states;
+        for (auto &nodeInfo : tempState)
         {
-            FANode *currentNode = nodeInfo.fanode;
-            std::set<unsigned char> currentNfaState = nodeInfo.nfaState;
+            FANode *currentNode = nodeInfo->fanode;
+            std::set<unsigned char> currentNfaState = nodeInfo->nfaState;
             
-            if(nodeInfo.isMark){
+            if(nodeInfo->isMark){
                 markcount++;
                 continue;
             }else{
-                nodeInfo.isMark = true;
+                nodeInfo->isMark = true;
                 markcount++;
                             
                 for (FASymbol alpha : impl_->nfa->alphabet)
@@ -165,7 +176,7 @@ DFA *DFABuilder::build()
         }
     }
     if(!impl_->temp->states.empty()){
-        dfa->accept = impl_->temp->states[impl_->temp->states.size() - 1].fanode;
+        dfa->accept = impl_->temp->states[impl_->temp->states.size() - 1]->fanode;
     }
     return dfa;
 }

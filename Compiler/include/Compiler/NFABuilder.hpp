@@ -12,7 +12,7 @@ class NFABuilder{
 
     ~NFABuilder();
 
-    NFA *fromAST(AST *ast);
+    std::shared_ptr<NFA> fromAST(std::shared_ptr<AST>ast);
 
     private:
         struct Impl;

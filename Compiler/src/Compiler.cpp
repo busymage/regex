@@ -1,5 +1,5 @@
-#include <CommonDataStructure/AST.hpp>
-#include <CommonDataStructure/FA.hpp>
+#include <Parser/AST.hpp>
+#include <Compiler/FA.hpp>
 #include <Compiler/Compiler.hpp>
 #include <Compiler/DFABuilder.hpp>
 #include <Compiler/NFABuilder.hpp>
@@ -17,9 +17,9 @@ Compiler::Compiler()
 
 Compiler::~Compiler() = default;
 
-DFA *Compiler::compile(const std::string &input)
+std::shared_ptr<DFA>  Compiler::compile(const std::string &input)
 {
-    AST *ast = nullptr;
+    std::shared_ptr<AST>ast = nullptr;
 
     if (input.length() != 0)
     {
@@ -32,13 +32,13 @@ DFA *Compiler::compile(const std::string &input)
     }
 
     NFABuilder nfaBuilder;
-    NFA *nfa = nfaBuilder.fromAST(ast);
+    std::shared_ptr<NFA> nfa = nfaBuilder.fromAST(ast);
     if (nfa == nullptr)
     {
         return nullptr;
     }
 
     DFABuilder dfaBuilder(nfa);
-    DFA *dfa = dfaBuilder.build();
+    std::shared_ptr<DFA>  dfa = dfaBuilder.build();
     return dfa;
 }

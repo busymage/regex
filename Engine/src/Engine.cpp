@@ -1,10 +1,10 @@
-#include <CommonDataStructure/FA.hpp>
+#include <Compiler/FA.hpp>
 #include <Compiler/Compiler.hpp>
 #include <Engine/Engine.hpp>
 
 struct Engine::Impl{
     std::string regexString;
-   std::unique_ptr<DFA> dfa;
+   std::shared_ptr<DFA> dfa;
 
    bool transaction(unsigned char &currentState, char c)
    {
@@ -29,8 +29,7 @@ Engine::Engine(const std::string &regexString)
 {
     impl_->regexString = regexString;
     Compiler compiler;
-    DFA *dfa = compiler.compile(regexString);
-    impl_->dfa = std::unique_ptr<DFA>(dfa);
+    impl_->dfa = compiler.compile(regexString);
 }
 
 bool Engine::accept(const std::string &match)

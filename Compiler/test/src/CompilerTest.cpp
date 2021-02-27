@@ -1,11 +1,11 @@
-#include <CommonDataStructure/FA.hpp>
+#include <Compiler/FA.hpp>
 #include <Compiler/Compiler.hpp>
 #include <gtest/gtest.h>
 
 TEST(CompilerTest, singleCharacter)
 {
     Compiler compiler;
-    DFA *dfa = compiler.compile("a");
+    std::shared_ptr<DFA>  dfa = compiler.compile("a");
     ASSERT_NE(nullptr, dfa);
     ASSERT_EQ(dfa->stateSet.size(), 2);
     FANode *na = dfa->stateSet['A'];
@@ -25,7 +25,7 @@ TEST(CompilerTest, singleCharacter)
 TEST(CompilerTest, closure)
 {
     Compiler compiler;
-    DFA *dfa = compiler.compile("a*");
+    std::shared_ptr<DFA>  dfa = compiler.compile("a*");
     ASSERT_NE(nullptr, dfa);
     ASSERT_EQ(dfa->stateSet.size(), 2);
     FANode *na = dfa->stateSet['A'];
@@ -45,7 +45,7 @@ TEST(CompilerTest, closure)
 TEST(CompilerTest, concatenation)
 {
     Compiler compiler;
-    DFA *dfa = compiler.compile("ab");
+    std::shared_ptr<DFA>  dfa = compiler.compile("ab");
     ASSERT_NE(nullptr, dfa);
     ASSERT_EQ(dfa->stateSet.size(), 3);
     FANode *na = dfa->stateSet['A'];
@@ -70,7 +70,7 @@ TEST(CompilerTest, concatenation)
 TEST(CompilerTest, threeAcceptState)
 {
     Compiler compiler;
-    DFA *dfa = compiler.compile("(a|b)*");
+    std::shared_ptr<DFA>  dfa = compiler.compile("(a|b)*");
     ASSERT_NE(nullptr, dfa);
     ASSERT_EQ(dfa->stateSet.size(), 3);
     FANode *na = dfa->stateSet['A'];
@@ -89,7 +89,7 @@ TEST(CompilerTest, threeAcceptState)
 TEST(CompilerTest, threeAcceptState2)
 {
     Compiler compiler;
-    DFA *dfa = compiler.compile("(a*|b*)*");
+    std::shared_ptr<DFA>  dfa = compiler.compile("(a*|b*)*");
     ASSERT_NE(nullptr, dfa);
     ASSERT_EQ(dfa->stateSet.size(), 3);
     FANode *na = dfa->stateSet['A'];
@@ -108,7 +108,7 @@ TEST(CompilerTest, threeAcceptState2)
 TEST(CompilerTest, fiveAcceptState)
 {
     Compiler compiler;
-    DFA *dfa = compiler.compile("(a|b)*abb(a|b)*");
+    std::shared_ptr<DFA>  dfa = compiler.compile("(a|b)*abb(a|b)*");
     ASSERT_NE(nullptr, dfa);
     ASSERT_EQ(dfa->stateSet.size(), 9);
     ASSERT_TRUE(dfa->stateSet['E']->isAcceptState);

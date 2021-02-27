@@ -12,7 +12,7 @@ class Compiler{
 
     ~Compiler();
 
-    DFA *compile(const std::string &input);
+    std::shared_ptr<DFA>  compile(const std::string &input);
 
     private:
         struct Impl;

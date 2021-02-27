@@ -1,5 +1,5 @@
-#include <CommonDataStructure/AST.hpp>
-#include <CommonDataStructure/FA.hpp>
+#include <Parser/AST.hpp>
+#include <Compiler/FA.hpp>
 #include <CommonDataStructure/Token.hpp>
 #include <Compiler/NFABuilder.hpp>
 #include <gtest/gtest.h>
@@ -8,7 +8,7 @@
 TEST(NFABuilderTest, empty)
 {
     NFABuilder builder;
-    NFA *nfa = builder.fromAST(nullptr);
+    std::shared_ptr<NFA> nfa = builder.fromAST(nullptr);
     ASSERT_TRUE(nfa != nullptr);
     ASSERT_EQ(2, nfa->stateSet.size());
     FANode *startNode = nfa->start;
@@ -20,13 +20,15 @@ TEST(NFABuilderTest, empty)
 
 TEST(NFABuilderTest, singleCharacter)
 {
-    AST *ast = new AST;
-    Node *node = new Node;
+
+    //a
+    std::shared_ptr<AST>ast = std::make_shared<AST>();
+    ASTNode*node = new ASTNode;
     node->leftChild = node->rightChild = nullptr;
     node->token = {TokenType::CHAR, "a"};
     ast->topNode = node;
     NFABuilder builder;
-    NFA *nfa = builder.fromAST(ast);
+    std::shared_ptr<NFA> nfa = builder.fromAST(ast);
     ASSERT_TRUE(nfa != nullptr);
     ASSERT_EQ(2, nfa->stateSet.size());
     FANode *startNode = nfa->start;
@@ -42,24 +44,24 @@ TEST(NFABuilderTest, singleCharacter)
 TEST(NFABuilderTest, Union)
 {
     // a|b
-    AST *ast = new AST;
-    Node *node = new Node;
+    std::shared_ptr<AST>ast = std::make_shared<AST>();
+    ASTNode*node = new ASTNode;
     node->leftChild = node->rightChild = nullptr;
     node->token = {TokenType::OR, "|"};
     ast->topNode = node;
 
-    Node *a = new Node;
+    ASTNode*a = new ASTNode;
     a->leftChild = a->rightChild = nullptr;
     a->token = {TokenType::CHAR, "a"};
     node->leftChild = a;
 
-    Node *b = new Node;
+    ASTNode*b = new ASTNode;
     b->leftChild = b->rightChild = nullptr;
     b->token = {TokenType::OR, "b"};
     node->rightChild = b;
     
     NFABuilder builder;
-    NFA *nfa = builder.fromAST(ast);
+    std::shared_ptr<NFA> nfa = builder.fromAST(ast);
     ASSERT_TRUE(nfa != nullptr);
     ASSERT_EQ(6, nfa->stateSet.size());
     
@@ -87,24 +89,24 @@ TEST(NFABuilderTest, Union)
 TEST(NFABuilderTest, concatenation)
 {
     // ab
-    AST *ast = new AST;
-    Node *node = new Node;
+    std::shared_ptr<AST>ast = std::make_shared<AST>();
+    ASTNode*node = new ASTNode;
     node->leftChild = node->rightChild = nullptr;
     node->token = {TokenType::CAT, ""};
     ast->topNode = node;
 
-    Node *a = new Node;
+    ASTNode*a = new ASTNode;
     a->leftChild = a->rightChild = nullptr;
     a->token = {TokenType::CHAR, "a"};
     node->leftChild = a;
 
-    Node *b = new Node;
+    ASTNode*b = new ASTNode;
     b->leftChild = b->rightChild = nullptr;
     b->token = {TokenType::OR, "b"};
     node->rightChild = b;
     
     NFABuilder builder;
-    NFA *nfa = builder.fromAST(ast);
+    std::shared_ptr<NFA> nfa = builder.fromAST(ast);
     ASSERT_TRUE(nfa != nullptr);
     ASSERT_EQ(4, nfa->stateSet.size());
     
@@ -137,19 +139,19 @@ TEST(NFABuilderTest, concatenation)
 TEST(NFABuilderTest, closure)
 {
     // a*
-    AST *ast = new AST;
-    Node *node = new Node;
+    std::shared_ptr<AST>ast = std::make_shared<AST>();
+    ASTNode*node = new ASTNode;
     node->leftChild = node->rightChild = nullptr;
     node->token = {TokenType::ZERO_MORE, "*"};
     ast->topNode = node;
 
-    Node *a = new Node;
+    ASTNode*a = new ASTNode;
     a->leftChild = a->rightChild = nullptr;
     a->token = {TokenType::CHAR, "a"};
     node->leftChild = a;
     
     NFABuilder builder;
-    NFA *nfa = builder.fromAST(ast);
+    std::shared_ptr<NFA> nfa = builder.fromAST(ast);
     ASSERT_TRUE(nfa != nullptr);
     ASSERT_EQ(4, nfa->stateSet.size());
     
@@ -191,29 +193,29 @@ TEST(NFABuilderTest, closure)
 TEST(NFABuilderTest, aOrbGroupFollowByStar)
 {
     //(a|b)*
-    AST *ast = new AST;
-    Node *node = new Node;
+    std::shared_ptr<AST>ast = std::make_shared<AST>();
+    ASTNode*node = new ASTNode;
     node->leftChild = node->rightChild = nullptr;
     node->token = {TokenType::ZERO_MORE, "*"};
     ast->topNode = node;
 
-    Node *or_ = new Node;
+    ASTNode*or_ = new ASTNode;
     or_->leftChild = or_->rightChild = nullptr;
     or_->token = {TokenType::OR, "|"};
     node->leftChild = or_;
 
-    Node *a = new Node;
+    ASTNode*a = new ASTNode;
     a->leftChild = a->rightChild = nullptr;
     a->token = {TokenType::CHAR, "a"};
     or_->leftChild = a;
 
-    Node *b = new Node;
+    ASTNode*b = new ASTNode;
     b->leftChild = b->rightChild = nullptr;
     b->token = {TokenType::CHAR, "b"};
     or_->rightChild = b;
 
     NFABuilder builder;
-    NFA *nfa = builder.fromAST(ast);
+    std::shared_ptr<NFA> nfa = builder.fromAST(ast);
     ASSERT_TRUE(nfa != nullptr);
     ASSERT_EQ(8, nfa->stateSet.size());
 
@@ -285,19 +287,19 @@ TEST(NFABuilderTest, aOrbGroupFollowByStar)
 TEST(NFABuilderTest, aZeroOrOne)
 {
     //a?
-    AST *ast = new AST;
-    Node *node = new Node;
+    std::shared_ptr<AST>ast = std::make_shared<AST>();
+    ASTNode*node = new ASTNode;
     node->leftChild = node->rightChild = nullptr;
     node->token = {TokenType::ZERO_OR_ONE, "?"};
     ast->topNode = node;
 
-    Node *a = new Node;
+    ASTNode*a = new ASTNode;
     a->leftChild = a->rightChild = nullptr;
     a->token = {TokenType::CHAR, "a"};
     node->rightChild = a;
 
     NFABuilder builder;
-    NFA *nfa = builder.fromAST(ast);
+    std::shared_ptr<NFA> nfa = builder.fromAST(ast);
     ASSERT_TRUE(nfa != nullptr);
     ASSERT_EQ(6, nfa->stateSet.size());
 
@@ -335,59 +337,59 @@ TEST(NFABuilderTest, aZeroOrOne)
 TEST(NFABuilderTest, mix)
 {
     //(a|b)*baa 
-    AST *ast = new AST;
-    Node *node = new Node;
+    std::shared_ptr<AST>ast = std::make_shared<AST>();
+    ASTNode*node = new ASTNode;
     node->leftChild = node->rightChild = nullptr;
     node->token = {TokenType::CAT, ""};
     ast->topNode = node;
 
-    Node *lastA = new Node;
+    ASTNode*lastA = new ASTNode;
     lastA->leftChild = lastA->rightChild = nullptr;
     lastA->token = {TokenType::CHAR, "a"};
     node->rightChild = lastA;
 
-    Node *cat1 = new Node;
+    ASTNode*cat1 = new ASTNode;
     cat1->leftChild = cat1->rightChild = nullptr;
     cat1->token = {TokenType::CAT, ""};
     node->leftChild = cat1;
 
-    Node *secondA = new Node;
+    ASTNode*secondA = new ASTNode;
     secondA->leftChild = secondA->rightChild = nullptr;
     secondA->token = {TokenType::CHAR, "a"};
     cat1->rightChild = secondA;
 
-    Node *cat2 = new Node;
+    ASTNode*cat2 = new ASTNode;
     cat2->leftChild = cat2->rightChild = nullptr;
     cat2->token = {TokenType::CAT, ""};
     cat1->leftChild = cat2;
 
-    Node *secondB = new Node;
+    ASTNode*secondB = new ASTNode;
     secondB->leftChild = secondB->rightChild = nullptr;
     secondB->token = {TokenType::CHAR, "b"};
     cat2->rightChild = secondB;
 
-    Node *star = new Node;
+    ASTNode*star = new ASTNode;
     star->leftChild = star->rightChild = nullptr;
     star->token = {TokenType::ZERO_MORE, "*"};
     cat2->leftChild = star;
 
-    Node *or_ = new Node;
+    ASTNode*or_ = new ASTNode;
     or_->leftChild = or_->rightChild = nullptr;
     or_->token = {TokenType::OR, "|"};
     star->leftChild = or_;
 
-    Node *a = new Node;
+    ASTNode*a = new ASTNode;
     a->leftChild = a->rightChild = nullptr;
     a->token = {TokenType::CHAR, "a"};
     or_->leftChild = a;
 
-    Node *b = new Node;
+    ASTNode*b = new ASTNode;
     b->leftChild = b->rightChild = nullptr;
     b->token = {TokenType::OR, "b"};
     or_->rightChild = b;
 
     NFABuilder builder;
-    NFA *nfa = builder.fromAST(ast);
+    std::shared_ptr<NFA> nfa = builder.fromAST(ast);
     ASSERT_TRUE(nfa != nullptr);
     ASSERT_EQ(14, nfa->stateSet.size());
 
@@ -415,33 +417,33 @@ TEST(NFABuilderTest, mix)
 TEST(NFABuilderTest, multipleOr)
 {
     //a|b|c
-    AST *ast = new AST;
-    Node *node = new Node;
+    std::shared_ptr<AST>ast = std::make_shared<AST>();
+    ASTNode*node = new ASTNode;
     node->leftChild = node->rightChild = nullptr;
     node->token = {TokenType::OR, "|"};
     ast->topNode = node;
 
-    Node *or_ = new Node;
+    ASTNode*or_ = new ASTNode;
     or_->leftChild = or_->rightChild = nullptr;
     or_->token = {TokenType::OR, "|"}; 
 
-    Node *c = new Node;
+    ASTNode*c = new ASTNode;
     c->leftChild = c->rightChild = nullptr;
     c->token = {TokenType::CHAR, "c"};
     node->leftChild = or_;
     node->rightChild = c;
 
-    Node *a = new Node;
+    ASTNode*a = new ASTNode;
     a->leftChild = a->rightChild = nullptr;
     a->token = {TokenType::CHAR, "a"};
-    Node *b = new Node;
+    ASTNode*b = new ASTNode;
     b->leftChild = b->rightChild = nullptr;
     b->token = {TokenType::CHAR, "b"};
     or_->leftChild = a;
     or_->rightChild = b;
 
     NFABuilder builder;
-    NFA *nfa = builder.fromAST(ast);
+    std::shared_ptr<NFA> nfa = builder.fromAST(ast);
     ASSERT_TRUE(nfa != nullptr);
     ASSERT_EQ(10, nfa->stateSet.size());
     FANode *n0 = nfa->stateSet[0];
@@ -460,21 +462,21 @@ TEST(NFABuilderTest, multipleOr)
 
 TEST(NFABuilderTest, characterRange)
 {
-    AST *ast = new AST;
-    Node *node = new Node;
+    std::shared_ptr<AST>ast = std::make_shared<AST>();
+    ASTNode*node = new ASTNode;
     node->leftChild = node->rightChild = nullptr;
     node->token = {TokenType::CHARACTER_RANGE, "-"};
     ast->topNode = node;
 
-    Node *a = new Node;
+    ASTNode*a = new ASTNode;
     a->token = {TokenType::CHAR, "a"};
-    Node *b = new Node;
+    ASTNode*b = new ASTNode;
     b->token = {TokenType::CHAR, "z"};
     node->leftChild = a;
     node->rightChild = b;
 
     NFABuilder builder;
-    NFA *nfa = builder.fromAST(ast);
+    std::shared_ptr<NFA> nfa = builder.fromAST(ast);
     ASSERT_TRUE(nfa != nullptr);
     ASSERT_EQ(2, nfa->stateSet.size());
     FANode *n0 = nfa->stateSet[0];
@@ -499,14 +501,14 @@ TEST(NFABuilderTest, characterClassNFA)
 {
     {
     //\d
-    AST *ast = new AST;
-    Node *node = new Node;
+    std::shared_ptr<AST>ast = std::make_shared<AST>();
+    ASTNode*node = new ASTNode;
     node->leftChild = node->rightChild = nullptr;
     node->token = {TokenType::ANY_SINGLE_DIGIT, "\\d"};
     ast->topNode = node;
 
     NFABuilder builder;
-    NFA *nfa = builder.fromAST(ast);
+    std::shared_ptr<NFA> nfa = builder.fromAST(ast);
     ASSERT_TRUE(nfa != nullptr);
     ASSERT_EQ(2, nfa->stateSet.size());
     FANode *n0 = nfa->stateSet[0];
@@ -528,14 +530,14 @@ TEST(NFABuilderTest, characterClassNFA)
 
     {
     //\D = 0x9-0xa|0xd|0x20-2F|0x40-0x7f
-    AST *ast = new AST;
-    Node *node = new Node;
+    std::shared_ptr<AST>ast = std::make_shared<AST>();
+    ASTNode*node = new ASTNode;
     node->leftChild = node->rightChild = nullptr;
     node->token = {TokenType::ANY_SINGLE_NOT_DIGIT, "\\D"};
     ast->topNode = node;
 
     NFABuilder builder;
-    NFA *nfa = builder.fromAST(ast);
+    std::shared_ptr<NFA> nfa = builder.fromAST(ast);
     ASSERT_TRUE(nfa != nullptr);
     ASSERT_EQ(14, nfa->stateSet.size());
     FANode *start = nfa->stateSet[12];
@@ -570,14 +572,14 @@ TEST(NFABuilderTest, characterClassNFA)
 
      {
     //\w = 48-57|65-90|95|97-122
-    AST *ast = new AST;
-    Node *node = new Node;
+    std::shared_ptr<AST>ast = std::make_shared<AST>();
+    ASTNode*node = new ASTNode;
     node->leftChild = node->rightChild = nullptr;
     node->token = {TokenType::ANY_SINGLE_WORD, "\\w"};
     ast->topNode = node;
 
     NFABuilder builder;
-    NFA *nfa = builder.fromAST(ast);
+    std::shared_ptr<NFA> nfa = builder.fromAST(ast);
     ASSERT_TRUE(nfa != nullptr);
     ASSERT_EQ(14, nfa->stateSet.size());
 
@@ -608,14 +610,14 @@ TEST(NFABuilderTest, characterClassNFA)
 
     {
     //\W = 32-47|58-64|91-94|96|123-126
-    AST *ast = new AST;
-    Node *node = new Node;
+    std::shared_ptr<AST>ast = std::make_shared<AST>();
+    ASTNode*node = new ASTNode;
     node->leftChild = node->rightChild = nullptr;
     node->token = {TokenType::ANY_SINGLE_NOT_WORD, "\\W"};
     ast->topNode = node;
 
     NFABuilder builder;
-    NFA *nfa = builder.fromAST(ast);
+    std::shared_ptr<NFA> nfa = builder.fromAST(ast);
     ASSERT_TRUE(nfa != nullptr);
     ASSERT_EQ(18, nfa->stateSet.size());
 
@@ -653,13 +655,13 @@ TEST(NFABuilderTest, characterClassNFA)
 TEST(NFABuilderTest, anyChar)
 {
     //.
-    AST *ast = new AST;
-    Node *node = new Node;
+    std::shared_ptr<AST>ast = std::make_shared<AST>();
+    ASTNode*node = new ASTNode;
     node->leftChild = node->rightChild = nullptr;
     node->token = {TokenType::ANY_SIGLE_CHAR_EXCEPT_NEWLINE, "."};
     ast->topNode = node;
     NFABuilder builder;
-    NFA *nfa = builder.fromAST(ast);
+    std::shared_ptr<NFA> nfa = builder.fromAST(ast);
     ASSERT_TRUE(nfa != nullptr);
     ASSERT_EQ(6, nfa->stateSet.size());
     std::set<FASymbol> inputAlphabet = nfa->alphabet;
@@ -674,17 +676,17 @@ TEST(NFABuilderTest, anyChar)
 TEST(NFABuilderTest, rangeQuantifer)
 {
     //a{1,2}
-    AST *ast = new AST;
-    Node *node = new Node;
+    std::shared_ptr<AST>ast = std::make_shared<AST>();
+    ASTNode*node = new ASTNode;
     node->leftChild = node->rightChild = nullptr;
     node->token = {TokenType::RANGE_QUANTIFER, "1,2"};
     ast->topNode = node;
     ast->topNode = node;
-    ast->topNode->leftChild = new Node;
+    ast->topNode->leftChild = new ASTNode;
     ast->topNode->leftChild->token = {TokenType::CHAR, "a"};
 
     NFABuilder builder;
-    NFA *nfa = builder.fromAST(ast);
+    std::shared_ptr<NFA> nfa = builder.fromAST(ast);
     ASSERT_TRUE(nfa != nullptr);
     ASSERT_EQ(6, nfa->stateSet.size());
     FANode *n1  = nfa->stateSet[1];
@@ -701,17 +703,17 @@ TEST(NFABuilderTest, rangeQuantifer)
 TEST(NFABuilderTest, rangeQuantiferWithZeroStart)
 {
     //a{0,2}
-    AST *ast = new AST;
-    Node *node = new Node;
+    std::shared_ptr<AST>ast = std::make_shared<AST>();
+    ASTNode*node = new ASTNode;
     node->leftChild = node->rightChild = nullptr;
     node->token = {TokenType::RANGE_QUANTIFER, "0,2"};
     ast->topNode = node;
     ast->topNode = node;
-    ast->topNode->leftChild = new Node;
+    ast->topNode->leftChild = new ASTNode;
     ast->topNode->leftChild->token = {TokenType::CHAR, "a"};
 
     NFABuilder builder;
-    NFA *nfa = builder.fromAST(ast);
+    std::shared_ptr<NFA> nfa = builder.fromAST(ast);
     ASSERT_TRUE(nfa != nullptr);
     ASSERT_EQ(6, nfa->stateSet.size());
     
@@ -735,17 +737,17 @@ TEST(NFABuilderTest, rangeQuantiferWithZeroStart)
 TEST(NFABuilderTest, rangeQuantiferWithSpecifierCount)
 {
     //a{2}
-    AST *ast = new AST;
-    Node *node = new Node;
+    std::shared_ptr<AST>ast = std::make_shared<AST>();
+    ASTNode*node = new ASTNode;
     node->leftChild = node->rightChild = nullptr;
     node->token = {TokenType::RANGE_QUANTIFER, "2"};
     ast->topNode = node;
     ast->topNode = node;
-    ast->topNode->leftChild = new Node;
+    ast->topNode->leftChild = new ASTNode;
     ast->topNode->leftChild->token = {TokenType::CHAR, "a"};
 
     NFABuilder builder;
-    NFA *nfa = builder.fromAST(ast);
+    std::shared_ptr<NFA> nfa = builder.fromAST(ast);
     ASSERT_TRUE(nfa != nullptr);
     ASSERT_EQ(6, nfa->stateSet.size());
 
@@ -762,17 +764,17 @@ TEST(NFABuilderTest, rangeQuantiferWithSpecifierCount)
 TEST(NFABuilderTest, rangeQuantiferWithoutMaxCount)
 {
     //a{2,}
-    AST *ast = new AST;
-    Node *node = new Node;
+    std::shared_ptr<AST>ast = std::make_shared<AST>();
+    ASTNode*node = new ASTNode;
     node->leftChild = node->rightChild = nullptr;
     node->token = {TokenType::RANGE_QUANTIFER, "2,"};
     ast->topNode = node;
     ast->topNode = node;
-    ast->topNode->leftChild = new Node;
+    ast->topNode->leftChild = new ASTNode;
     ast->topNode->leftChild->token = {TokenType::CHAR, "a"};
 
     NFABuilder builder;
-    NFA *nfa = builder.fromAST(ast);
+    std::shared_ptr<NFA> nfa = builder.fromAST(ast);
     ASSERT_TRUE(nfa != nullptr);
     ASSERT_EQ(6, nfa->stateSet.size());
 
@@ -792,17 +794,17 @@ TEST(NFABuilderTest, rangeQuantiferWithoutMaxCount)
 TEST(NFABuilderTest, rangeQuantiferUnlimitedCount)
 {
     //a{0,}
-    AST *ast = new AST;
-    Node *node = new Node;
+    std::shared_ptr<AST>ast = std::make_shared<AST>();
+    ASTNode*node = new ASTNode;
     node->leftChild = node->rightChild = nullptr;
     node->token = {TokenType::RANGE_QUANTIFER, "0,"};
     ast->topNode = node;
     ast->topNode = node;
-    ast->topNode->leftChild = new Node;
+    ast->topNode->leftChild = new ASTNode;
     ast->topNode->leftChild->token = {TokenType::CHAR, "a"};
 
     NFABuilder builder;
-    NFA *nfa = builder.fromAST(ast);
+    std::shared_ptr<NFA> nfa = builder.fromAST(ast);
     ASSERT_TRUE(nfa != nullptr);
     ASSERT_EQ(4, nfa->stateSet.size());
 
@@ -817,17 +819,17 @@ TEST(NFABuilderTest, rangeQuantiferUnlimitedCount)
 TEST(NFABuilderTest, rangeQuantiferWith0Count)
 {
     //a{0}
-    AST *ast = new AST;
-    Node *node = new Node;
+    std::shared_ptr<AST>ast = std::make_shared<AST>();
+    ASTNode*node = new ASTNode;
     node->leftChild = node->rightChild = nullptr;
     node->token = {TokenType::RANGE_QUANTIFER, "0"};
     ast->topNode = node;
     ast->topNode = node;
-    ast->topNode->leftChild = new Node;
+    ast->topNode->leftChild = new ASTNode;
     ast->topNode->leftChild->token = {TokenType::CHAR, "a"};
 
     NFABuilder builder;
-    NFA *nfa = builder.fromAST(ast);
+    std::shared_ptr<NFA> nfa = builder.fromAST(ast);
     ASSERT_TRUE(nfa != nullptr);
     ASSERT_EQ(2, nfa->stateSet.size());
     ASSERT_EQ(0, nfa->alphabet.size());

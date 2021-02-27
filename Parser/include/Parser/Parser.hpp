@@ -12,7 +12,7 @@ class Parser{
 
     ~Parser();
 
-    AST *parse();
+    std::shared_ptr<AST>parse();
 
     private:
         struct Impl;
