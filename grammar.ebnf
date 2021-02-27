@@ -32,7 +32,7 @@ CharacterRange ::= Char ('-' Char)?
 Quantifier ::= *
             | +
             | ?
-            | QuantifierType
+            | RangeQuantifier
 
 RangeQuantifier
         ::= '{' Integer ( ',' Integer? )? '}'
