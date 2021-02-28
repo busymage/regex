@@ -78,6 +78,11 @@ Token Scanner::getNextToken()
             token.value = "\\D";
             impl_->index++;
             return token;
+        case '.':
+            token.type = TokenType::CHAR;
+            token.value = ".";
+            impl_->index++;
+            return token;
         default:
             token.type = TokenType::SLASH;
             token.value = "\\";
