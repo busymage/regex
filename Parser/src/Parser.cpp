@@ -220,6 +220,14 @@ struct Parser::Impl{
         if(isQuantifierType(currentToken.type)){
             if(TokenType::ONE_MORE == currentToken.type){
                 return oneMore(item);
+            }
+            else if(TokenType::ZERO_OR_ONE == currentToken.type)
+            {
+                Token token = {TokenType::RANGE_QUANTIFER, "0,1"};
+                ASTNode *range = new ASTNode(token);
+                range->leftChild = item;
+                consume(TokenType::ZERO_OR_ONE);
+                return range;
             }else{
                 ASTNode*quan = quantifier();
                 if(nullptr == quan){
@@ -249,6 +257,14 @@ struct Parser::Impl{
             if (TokenType::ONE_MORE == currentToken.type)
             {
                 return oneMore(expr);
+            }
+            else if(TokenType::ZERO_OR_ONE == currentToken.type)
+            {
+                Token token = {TokenType::RANGE_QUANTIFER, "0,1"};
+                ASTNode *range = new ASTNode(token);
+                range->leftChild = expr;
+                consume(TokenType::ZERO_OR_ONE);
+                return range;
             }
             else
             {

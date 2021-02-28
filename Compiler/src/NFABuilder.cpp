@@ -296,35 +296,6 @@ struct NFABuilder::Impl
             return;
         }
 
-        if (astNode->token.type == TokenType::ZERO_OR_ONE)
-        {
-            std::shared_ptr<NFA> nfa = stack[stack.size() - 1];
-            stack.pop_back();
-            //create four node
-            FANode *n0 = CreateNFANode(nfa);
-            FANode *n1 = CreateNFANode(nfa);
-            FANode *n2 = CreateNFANode(nfa);
-            FANode *n3 = CreateNFANode(nfa);
-
-            n3->isAcceptState = true;
-            Edge toOladStart(nfa->start, '\0');
-            Edge ton1(n1, '\0');
-            Edge ton2(n2, '\0');
-            Edge toNewAccept(n3, '\0');
-            n0->edges.push_back(toOladStart);
-            n0->edges.push_back(ton1);
-            n1->edges.push_back(ton2);
-            n2->edges.push_back(toNewAccept);
-            nfa->accept->edges.push_back(toNewAccept);
-
-            //reset new start and accept
-            nfa->start = n0;
-            nfa->accept = n3;
-
-            stack.push_back(nfa);
-            return;
-        }
-
         if(astNode->token.type == TokenType::RANGE_QUANTIFER)
         {
             std::shared_ptr<NFA> newNfa = buildEmptyNFA();

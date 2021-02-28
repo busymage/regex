@@ -199,8 +199,8 @@ TEST(ParserTest, quantifier)
     {
         Parser parser("a?");
         std::shared_ptr<AST>ast = parser.parse();
-        ASSERT_EQ(ast->topNode->token.type, TokenType::ZERO_OR_ONE);
-        ASSERT_EQ(ast->topNode->token.value, "?");
+        ASSERT_EQ(ast->topNode->token.type, TokenType::RANGE_QUANTIFER);
+        ASSERT_EQ(ast->topNode->token.value, "0,1");
 
         ASTNode*a = ast->topNode->leftChild;
         ASSERT_EQ(a->token.type, TokenType::CHAR);
@@ -382,4 +382,32 @@ TEST(ParserTest, gotTheCache)
     std::shared_ptr<AST>ast1 = parser.parse();
     ASSERT_TRUE(ast1->isVaild);
     ASSERT_EQ(ast->topNode, ast1->topNode);
+}
+
+TEST(ParserTest, zeroOrOneGroupWhichHaszeroOrOneElementFllowAElement)
+{
+    //(xa?0)?
+    Parser parser("(xa?0)?");
+    std::shared_ptr<AST>ast = parser.parse();
+    ASSERT_TRUE(ast->isVaild);
+    ASTNode *topNode = ast->topNode;
+    ASSERT_EQ(topNode->token.type, TokenType::RANGE_QUANTIFER);
+    
+    //(xa?0)
+    ASTNode *xa0 = topNode->leftChild;
+    ASSERT_EQ(xa0->token.type, TokenType::CAT);
+
+    //xa?
+    ASTNode *xa = xa0->leftChild;
+    ASSERT_EQ(xa->token.type, TokenType::CAT);
+    ASTNode *x = xa->leftChild;
+    ASSERT_EQ(x->token.type, TokenType::CHAR);
+    ASTNode *a = xa->rightChild;
+    ASSERT_EQ(a->token.type, TokenType::RANGE_QUANTIFER);
+    ASSERT_EQ(a->leftChild->token.type, TokenType::CHAR);
+    ASSERT_EQ(a->leftChild->token.value, "a");
+
+    //0
+    ASSERT_EQ(xa0->rightChild->token.type, TokenType::CHAR);
+    ASSERT_EQ(xa0->rightChild->token.value, "0");
 }

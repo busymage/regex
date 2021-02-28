@@ -1,8 +1,10 @@
-#include <Parser/AST.hpp>
+
 #include <Compiler/FA.hpp>
 #include <CommonDataStructure/Token.hpp>
 #include <Compiler/NFABuilder.hpp>
 #include <gtest/gtest.h>
+#include <Parser/AST.hpp>
+#include <Parser/Parser.hpp>
 #include <set>
 
 TEST(NFABuilderTest, empty)
@@ -287,21 +289,13 @@ TEST(NFABuilderTest, aOrbGroupFollowByStar)
 TEST(NFABuilderTest, aZeroOrOne)
 {
     //a?
-    std::shared_ptr<AST>ast = std::make_shared<AST>();
-    ASTNode*node = new ASTNode;
-    node->leftChild = node->rightChild = nullptr;
-    node->token = {TokenType::ZERO_OR_ONE, "?"};
-    ast->topNode = node;
-
-    ASTNode*a = new ASTNode;
-    a->leftChild = a->rightChild = nullptr;
-    a->token = {TokenType::CHAR, "a"};
-    node->rightChild = a;
+    Parser parser("a?");
+    std::shared_ptr<AST>ast = parser.parse();
 
     NFABuilder builder;
     std::shared_ptr<NFA> nfa = builder.fromAST(ast);
     ASSERT_TRUE(nfa != nullptr);
-    ASSERT_EQ(6, nfa->stateSet.size());
+    ASSERT_EQ(4, nfa->stateSet.size());
 
     FANode *n0 = nfa->stateSet[0];
     ASSERT_TRUE(n0 != nullptr);
@@ -310,28 +304,21 @@ TEST(NFABuilderTest, aZeroOrOne)
     FANode *n2 = nfa->stateSet[2];
     ASSERT_TRUE(n2 != nullptr);
     FANode *n3 = nfa->stateSet[3];
-    ASSERT_TRUE(n3 != nullptr);
-    FANode *n4 = nfa->stateSet[4];
-    ASSERT_TRUE(n4 != nullptr);
-    FANode *n5 = nfa->stateSet[5];
-    ASSERT_TRUE(n5 != nullptr);
 
+    ASSERT_EQ(n2, nfa->start);
+    ASSERT_EQ(n3, nfa->accept);
+    ASSERT_EQ(n0->edges.size(), 1);
+    ASSERT_EQ(n0->edges[0].destination, n1);
+    ASSERT_EQ(n0->edges[0].lable.lowerBound, 'a');
     ASSERT_EQ(n1->edges.size(), 1);
-    ASSERT_EQ(n1->edges[0].destination, n5);
+    ASSERT_EQ(n1->edges[0].destination, n3);
     ASSERT_EQ(n1->edges[0].lable.lowerBound, '\0');
     ASSERT_EQ(n2->edges.size(), 2);
     ASSERT_EQ(n2->edges[0].destination, n0);
     ASSERT_EQ(n2->edges[0].lable.lowerBound, '\0');
     ASSERT_EQ(n2->edges[1].destination, n3);
     ASSERT_EQ(n2->edges[1].lable.lowerBound, '\0');
-    ASSERT_EQ(n3->edges.size(), 1);
-    ASSERT_EQ(n3->edges[0].destination, n4);
-    ASSERT_EQ(n3->edges[0].lable.lowerBound, '\0');
-    ASSERT_EQ(n4->edges.size(), 1);
-    ASSERT_EQ(n4->edges[0].destination, n5);
-    ASSERT_EQ(n4->edges[0].lable.lowerBound, '\0');
-    ASSERT_EQ(n5->edges.size(), 0);
-    ASSERT_TRUE(n5->isAcceptState);
+    ASSERT_EQ(n3->edges.size(), 0);
 }
 
 TEST(NFABuilderTest, mix)
@@ -833,4 +820,18 @@ TEST(NFABuilderTest, rangeQuantiferWith0Count)
     ASSERT_TRUE(nfa != nullptr);
     ASSERT_EQ(2, nfa->stateSet.size());
     ASSERT_EQ(0, nfa->alphabet.size());
+}
+
+TEST(NFABuilderTest, zeroOrOneGroupWhichHaszeroOrOneElementFllowAElement)
+{
+    //(xa?0)?
+    Parser parser("(xa?0)?");
+    std::shared_ptr<AST>ast = parser.parse();
+    ASSERT_TRUE(ast->isVaild);
+
+    NFABuilder builder;
+    std::shared_ptr<NFA> nfa = builder.fromAST(ast);
+    ASSERT_TRUE(nfa != nullptr);
+    ASSERT_EQ(10, nfa->stateSet.size());
+    ASSERT_EQ(2, nfa->stateSet[4]->edges.size());
 }
