@@ -2,6 +2,8 @@
 #define REGEX_ENGINE_HPP
 
 #include <memory>
+#include <string>
+#include <vector>
 
 class Engine{
     public:
@@ -9,7 +11,9 @@ class Engine{
 
     ~Engine();
 
-    bool accept(const std::string &match);
+    bool accept(const std::string &input);
+
+    std::vector<std::string> match(const std::string &input);
 
     private:
         struct Impl;

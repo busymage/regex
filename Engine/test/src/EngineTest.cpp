@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <Engine/Engine.hpp>
+#include <string>
 #include <vector>
 
 TEST(EngineTest, empty)
@@ -42,7 +43,7 @@ TEST(EngineTest, accpetOneOrMoreCharacter)
 TEST(EngineTest, accpetZeroOrOneCharacter)
 {
     {
-        Engine e("a?");
+        Engine e("(a?)?");
         ASSERT_TRUE(e.accept(""));
         ASSERT_FALSE(e.accept("a?"));
         ASSERT_TRUE(e.accept("a"));
@@ -51,12 +52,18 @@ TEST(EngineTest, accpetZeroOrOneCharacter)
     }
 
     {
-        Engine e("(ab)?");
-        ASSERT_TRUE(e.accept(""));
+        Engine e("(ab)?([\\d]+)");
+        ASSERT_TRUE(e.accept("1"));
         ASSERT_FALSE(e.accept("a"));
-        ASSERT_TRUE(e.accept("ab"));
+        ASSERT_TRUE(e.accept("ab6"));
         ASSERT_FALSE(e.accept("b"));
-        ASSERT_FALSE(e.accept("abab"));
+    }
+    {
+        Engine e("(xa?://)?[\\da-z]+");
+        ASSERT_TRUE(e.accept("x://007"));
+        ASSERT_TRUE(e.accept("007"));
+        ASSERT_TRUE(e.accept("xa://w"));
+        ASSERT_FALSE(e.accept("https//"));
     }
 }
 
@@ -167,9 +174,69 @@ TEST(EngineTest, accpetRangeQuantifer)
         ASSERT_FALSE(e.accept("az999"));
     }
     {
-        Engine e("[\\da-z]{1}");
-        ASSERT_TRUE(e.accept("a"));
-        ASSERT_TRUE(e.accept("9"));
-        ASSERT_FALSE(e.accept("az"));
+        Engine e("[\\da-z]{2,6}");
+        ASSERT_TRUE(e.accept("a99999"));
+        ASSERT_TRUE(e.accept("9nn"));
+        ASSERT_FALSE(e.accept("a0123456"));
     }
+}
+
+TEST(EngineTest, matchLineStartAndLineEnd)
+{
+    std::string vaild = "my-us3r_n4m3";
+    std::string invaild = "th1s1s-wayt00_l0ngt0beausername";
+    std::string input = vaild + '\n' + invaild + '\n';
+    std::vector<std::string> testVector = {
+        vaild
+    };
+
+    Engine e("^[a-z0-9_-]{3,16}$");
+    std::vector<std::string> result = e.match(input);
+    ASSERT_EQ(result, testVector);
+}
+
+TEST(EngineTest, matchLineStart)
+{
+    std::string vaild = "john@doe.com";
+    std::string invaild = vaild + ".cn.org";
+    std::string input = vaild + '\n' + invaild + '\n';
+    std::vector<std::string> testVector = {
+        vaild,
+        vaild + ".cn"
+    };
+
+    Engine e("^([a-z0-9_-]+)@([\\da-z-]+)\\.([a-z.]{2,6})");
+    std::vector<std::string> result = e.match(input);
+    ASSERT_EQ(result, testVector);
+}
+
+TEST(EngineTest, matchLineEnd)
+{
+    std::string vaild = "starthttps://google.com/about";
+    std::string invaild = "http://google.com/some/file!.html";
+    std::string input = vaild + '\n' + invaild + '\n';
+    std::vector<std::string> testVector = {
+        "https://google.com/about"
+    };
+
+    Engine e("(https?://)?([\\da-z-]+)\\.([a-z.]{2,6})([/\\w .-]*)*/?$");
+    ASSERT_TRUE(e.accept("https://google.com/about"));
+    std::vector<std::string> result = e.match(input);
+    ASSERT_EQ(result, testVector);
+}
+
+TEST(EngineTest, matchAnyWhere)
+{
+    std::string vaild = "starthttps://google.com/about";
+    std::string invaild = "http://google.com/some/file!.htmlhttps://cpluscplus.com";
+    std::string input = vaild + '\n' + invaild + '\n';
+    std::vector<std::string> testVector = {
+        "https://google.com/about",
+        "http://google.com/some/file",
+        "https://cpluscplus.com"
+    };
+
+    Engine e("(https?://)?([\\da-z-]+)\\.([a-z.]{2,6})([/\\w .-]*)*/?");
+    std::vector<std::string> result = e.match(input);
+    ASSERT_EQ(result, testVector);
 }

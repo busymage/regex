@@ -109,9 +109,17 @@ struct Parser::Impl{
                 return characterClass();
         
             case  TokenType::CHAR:
-                return CharacterRange();
+            {
+                char c = currentToken.value[0];
+                if(isalnum(c)){
+                    return CharacterRange();
+                } else{
+                    return matchCharacter();
+                }
+            }
             default:
-                break;
+                //should treat as char
+                return matchCharacter();
         }
         return nullptr;
     }

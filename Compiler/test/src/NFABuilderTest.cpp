@@ -835,3 +835,22 @@ TEST(NFABuilderTest, zeroOrOneGroupWhichHaszeroOrOneElementFllowAElement)
     ASSERT_EQ(10, nfa->stateSet.size());
     ASSERT_EQ(2, nfa->stateSet[4]->edges.size());
 }
+
+TEST(NFABuilderTest, rangeFollowByCharacter)
+{
+    //(xa?0)?(a)
+    Parser parser("(xa?0)?(a)");
+    std::shared_ptr<AST>ast = parser.parse();
+    ASSERT_TRUE(ast->isVaild);
+
+    NFABuilder builder;
+    std::shared_ptr<NFA> nfa = builder.fromAST(ast);
+    ASSERT_TRUE(nfa != nullptr);
+    ASSERT_EQ(12, nfa->stateSet.size());
+    ASSERT_EQ(1, nfa->stateSet[9]->edges.size());
+    ASSERT_EQ('\0', nfa->stateSet[9]->edges[0].lable.lowerBound);
+    ASSERT_EQ(nfa->stateSet[10], nfa->stateSet[9]->edges[0].destination);
+    ASSERT_EQ('a', nfa->stateSet[10]->edges[0].lable.lowerBound);
+    ASSERT_EQ(nfa->stateSet[11], nfa->stateSet[10]->edges[0].destination);
+    ASSERT_EQ(nfa->stateSet[11], nfa->accept);
+}
